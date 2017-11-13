@@ -1,3 +1,5 @@
 .idea/
-nmt.iml
-
+primary.csv
+secondary.csv
+ss.txt
+__pycache__/
