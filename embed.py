@@ -2,6 +2,7 @@ import tensorflow as tf
 import numpy as np
 import math
 import utils
+import random
 
 
 
@@ -19,7 +20,7 @@ nce_biases = tf.Variable(tf.zeros([vocabulary_size]))
 train_inputs = tf.placeholder(tf.int32, shape=[batch_size])
 train_labels = tf.placeholder(tf.int32, shape=[batch_size, 1])
 
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        embed = tf.nn.embedding_lookup(embeddings, train_inputs)
+embed = tf.nn.embedding_lookup(embeddings, train_inputs)
 
 # Compute the NCE loss, using a sample of the negative labels each time.
 loss = tf.reduce_mean(
@@ -33,22 +34,30 @@ loss = tf.reduce_mean(
 # We use the SGD optimizer.
 optimizer = tf.train.GradientDescentOptimizer(learning_rate=1.0).minimize(loss)
 
+print("Reading training data...")
 primary, secondary = utils.read_integerized_input()
 
 
 def generate_batch(sequence, batch_size, window_radius=1, repetition=1):
-    index = 0
-    print(batch_size                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            )
+    batch = list()
+    labels = list()
+    assert window_radius >= repetition, "Window radius must not be greater than repetition coefficient (in this implementation)!"
     assert batch_size % repetition == 0, "Batch size must be divisible by repetition coefficient (in this implementation)!"
-    for i in range(batch_size // repetition):
-        span = sequence[max(index-window_radius, 0):max(index+window_radius-1, len(sequence))]
-        print(span)
-    # This function needs to be finished
+    for index in range(batch_size // repetition):
+        samples = random.sample([k-window_radius for k in range(window_radius * 2 + 1) if k-window_radius != 0 and 0 <= index + k-window_radius < batch_size // repetition], repetition)
+        for j in samples:
+            labels.append(sequence[index])
+            batch.append(sequence[index + j])
+    return batch, labels
 
 
-generate_batch(primary[0], 10)
+batch, labels = generate_batch(primary[0], 20, 2, 2)
+print(batch)
+print(labels)
 
+"""
 with tf.Session() as sess:
     for inputs, labels in generate_batch(batch_size, primary):
         feed_dict = {train_inputs: inputs, train_labels: labels}
         _, cur_loss = sess.run([optimizer, loss], feed_dict=feed_dict)
+"""
