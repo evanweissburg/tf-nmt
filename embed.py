@@ -1,10 +1,7 @@
 import tensorflow as tf
-import numpy as np
 import math
 import utils
 import random
-
-
 
 vocabulary_size = 20
 embedding_size = 5
@@ -34,24 +31,30 @@ loss = tf.reduce_mean(
 # We use the SGD optimizer.
 optimizer = tf.train.GradientDescentOptimizer(learning_rate=1.0).minimize(loss)
 
-print("Reading training data...")
+print('Reading training data...')
 primary, secondary = utils.read_integerized_input()
 
 
-def generate_batch(sequence, batch_size, window_radius=1, repetition=1):
+def generate_batch(sequences, batch_size, window_radius=1, repetition=1):
     batch = list()
     labels = list()
-    assert window_radius >= repetition, "Window radius must not be greater than repetition coefficient (in this implementation)!"
-    assert batch_size % repetition == 0, "Batch size must be divisible by repetition coefficient (in this implementation)!"
-    for index in range(batch_size // repetition):
-        samples = random.sample([k-window_radius for k in range(window_radius * 2 + 1) if k-window_radius != 0 and 0 <= index + k-window_radius < batch_size // repetition], repetition)
-        for j in samples:
-            labels.append(sequence[index])
-            batch.append(sequence[index + j])
-    return batch, labels
+    assert window_radius >= repetition, 'Window radius must not be less than repetition coefficient!'
+    assert batch_size % repetition, 'Batch size must be divisible by repetition!'
+
+    for sequence in sequences:
+        for index in range(len(sequence)):
+            samples = random.sample([k-window_radius for k in range(window_radius * 2 + 1)
+                                    if k-window_radius != 0 and 0 <= index + k-window_radius < len(sequence)],
+                                    repetition if repetition < len(sequence) else len(sequence))
+            for j in samples:
+                labels.append(sequence[index])
+                batch.append(sequence[index + j])
+                if len(batch) == batch_size:
+                    return batch, labels
+    return None
 
 
-batch, labels = generate_batch(primary[0], 20, 2, 2)
+batch, labels = generate_batch(primary, 20, 2, 2)
 print(batch)
 print(labels)
 
