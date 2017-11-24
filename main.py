@@ -1,6 +1,7 @@
 import random
 import numpy as np
 import os
+import tensorflow as tf
 
 import utils
 import embed
@@ -12,10 +13,10 @@ random.seed(0)
 np.random.seed(0)
 
 primary, secondary = utils.read_integerized_input()
-embed.generate_embeddings(primary, batch_size=10, epochs=10000, embedding_size=5, learning_rate=1.0,
-                          vocabulary_size=20, window_radius=1, repetition=1)
-embed.generate_embeddings(secondary, batch_size=10, epochs=10000, embedding_size=5, learning_rate=1.0,
-                          vocabulary_size=8, window_radius=1, repetition=1)
+embed.generate_embeddings(primary, batch_size=10, epochs=100000, embedding_size=10, learning_rate=1.0,
+                          vocabulary_size=20, window_radius=3, repetition=1)
+embed.generate_embeddings(secondary, batch_size=10, epochs=100000, embedding_size=5, learning_rate=1.0,
+                          vocabulary_size=8, window_radius=3, repetition=1)
 
 print('Run complete.')
 
