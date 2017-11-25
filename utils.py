@@ -102,3 +102,8 @@ def read_integerized_input():
     return primary, secondary
 
 
+def get_batch(primary, secondary):
+    encoder_inputs = None
+    decoder_inputs = None
+    decoder_outputs = None
+    return encoder_inputs, decoder_inputs, decoder_outputs
