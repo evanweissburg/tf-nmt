@@ -14,8 +14,8 @@ np.random.seed(0)
 
 print('Creating Tensorflow graph...')
 
-EPOCHS = 100
-LEARNING_RATE = 0.01
+EPOCHS = 1000000
+LEARNING_RATE = 0.001
 NUM_UNITS = 10
 BATCH_SIZE = 2
 MAX_GRADIENT_NORM = 1
@@ -61,23 +61,23 @@ encoder_cell = tf.nn.rnn_cell.BasicLSTMCell(NUM_UNITS)
 # Run Dynamic RNN
 #   encoder_outpus: [max_time, batch_size, num_units]
 #   encoder_state: [batch_size, num_units]
-encoder_outputs, encoder_state = tf.nn.dynamic_rnn(encoder_cell, encoder_emb_inp, sequence_length=source_lengths, time_major=True, dtype=tf.float32)
+encoder_outputs, encoder_state = tf.nn.dynamic_rnn(encoder_cell, encoder_emb_inp, sequence_length=source_lengths, dtype=tf.float32)
 
 # Build second RNN cell
 decoder_cell = tf.nn.rnn_cell.BasicLSTMCell(NUM_UNITS)
 # Build a projection layer (will be placed on top of Decoder LSTM)
 projection_layer = layers_core.Dense(TGT_VOCAB_SIZE, use_bias=False)
 # Helper (for training)
-helper = tf.contrib.seq2seq.TrainingHelper(decoder_emb_inp, sequence_length=target_lengths, time_major=True)
+helper = tf.contrib.seq2seq.TrainingHelper(decoder_emb_inp, sequence_length=target_lengths)
 # Decoder
 decoder = tf.contrib.seq2seq.BasicDecoder(decoder_cell, helper, encoder_state, output_layer=projection_layer)
 # Dynamic decoding
-outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder, output_time_major=True)
+outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder)
 logits = outputs.rnn_output
 
 crossent = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=target, logits=logits)
-target_weights = tf.transpose(tf.sequence_mask(target_lengths, tf.size(crossent), dtype=logits.dtype))
-train_loss = (tf.reduce_sum(crossent * target_weights) / BATCH_SIZE)
+target_weights = tf.sequence_mask(target_lengths, maxlen=tf.shape(target)[1], dtype=logits.dtype)
+train_loss = tf.reduce_sum(crossent * target_weights / BATCH_SIZE)
 
 # Calculate and clip gradients
 params = tf.trainable_variables()
