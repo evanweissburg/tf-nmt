@@ -27,24 +27,22 @@ TGT_EMBED_SIZE = 5
 
 # Setup dataset
 
+if not (os.path.exists('primary.csv') and os.path.exists('secondary.csv')):
+    utils.integerize_raw_data()
 source_dataset = tf.data.TextLineDataset('primary.csv')
 target_dataset = tf.data.TextLineDataset('secondary.csv')
-source_dataset = source_dataset.map(lambda protein: (protein, tf.size(protein)))
-target_dataset = target_dataset.map(lambda protein: (protein, tf.size(protein)))
-source_dataset = source_dataset.map(lambda words, size: (tf.cast(words, tf.int32), size))
-target_dataset = target_dataset.map(lambda words, size: (tf.cast(words, tf.int32), size))
+source_dataset = source_dataset.map(lambda protein: tf.string_to_number(tf.string_split([protein], delimiter=',').values, tf.int32))
+target_dataset = target_dataset.map(lambda protein: tf.string_to_number(tf.string_split([protein], delimiter=',').values, tf.int32))
+source_dataset = source_dataset.map(lambda words: (words, tf.size(words)))
+target_dataset = target_dataset.map(lambda words: (words, tf.size(words)))
 dataset = tf.data.Dataset.zip((source_dataset, target_dataset))
 
 batched_dataset = dataset.padded_batch(
     BATCH_SIZE,
-    padded_shapes=((tf.TensorShape([None]),  # source vectors of unknown size
-                    tf.TensorShape([])),     # size(source)
-                   (tf.TensorShape([None]),  # target vectors of unknown size
-                    tf.TensorShape([]))),    # size(target)
-    padding_values=((0,  # source vectors padded on the right with src_eos_id
-                     0),          # size(source) -- unused
-                    (0,  # target vectors padded on the right with tgt_eos_id
-                     0)))         # size(target) -- unused
+    padded_shapes=((tf.TensorShape([None]), tf.TensorShape([])),   # source, lengths
+                   (tf.TensorShape([None]), tf.TensorShape([]))),  # targets, lengths
+    padding_values=((0, 0),   # Source padding, size padding (no size padding -- type is int)
+                    (0, 0)))  # Target padding, size padding (see above)
 batched_iterator = batched_dataset.make_initializable_iterator()
 ((source, source_lengths), (target, target_lengths)) = batched_iterator.get_next()
 
@@ -74,12 +72,11 @@ helper = tf.contrib.seq2seq.TrainingHelper(decoder_emb_inp, sequence_length=targ
 # Decoder
 decoder = tf.contrib.seq2seq.BasicDecoder(decoder_cell, helper, encoder_state, output_layer=projection_layer)
 # Dynamic decoding
-outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder)
+outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder, output_time_major=True)
 logits = outputs.rnn_output
 
 crossent = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=target, logits=logits)
-target_weights = np.ones_like(crossent)
-target_weights[tf.size(target).eval(session=tf.Session()):] = 0
+target_weights = tf.transpose(tf.sequence_mask(target_lengths, tf.size(crossent), dtype=logits.dtype))
 train_loss = (tf.reduce_sum(crossent * target_weights) / BATCH_SIZE)
 
 # Calculate and clip gradients
@@ -96,8 +93,8 @@ print('Tensorflow graph created.')
 with tf.Session() as sess:
     print('Initializing Tensorflow variables.')
     sess.run(tf.global_variables_initializer())
-    primary, secondary = utils.read_integerized_input()
     sess.run(batched_iterator.initializer)
+    print(source.eval())
 
     for epoch in range(EPOCHS):
         _, loss = sess.run([update_step, train_loss])
