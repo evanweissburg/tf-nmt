@@ -11,22 +11,25 @@ print('Beginning run...')
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 random.seed(0)
 np.random.seed(0)
+np.set_printoptions(linewidth=10000)
 
 print('Creating Tensorflow graph...')
 
-EPOCHS = 1000000
+PRINT_FREQ = 100       # how often should loss be evaluated
+PRINT_EXAMPLES = 5     # num of example proteins to print out every time loss is evaluated
+
+EPOCHS = 10000
 LEARNING_RATE = 0.001
 NUM_UNITS = 10
-BATCH_SIZE = 2
+BATCH_SIZE = 5
 MAX_GRADIENT_NORM = 1
 
-SRC_VOCAB_SIZE = 20
-TGT_VOCAB_SIZE = 8
+SRC_VOCAB_SIZE = 24
+TGT_VOCAB_SIZE = 9
 SRC_EMBED_SIZE = 10
 TGT_EMBED_SIZE = 5
 
-# Setup dataset
-
+# Data pipeline
 if not (os.path.exists('primary.csv') and os.path.exists('secondary.csv')):
     utils.integerize_raw_data()
 source_dataset = tf.data.TextLineDataset('primary.csv')
@@ -36,45 +39,33 @@ target_dataset = target_dataset.map(lambda protein: tf.string_to_number(tf.strin
 source_dataset = source_dataset.map(lambda words: (words, tf.size(words)))
 target_dataset = target_dataset.map(lambda words: (words, tf.size(words)))
 dataset = tf.data.Dataset.zip((source_dataset, target_dataset))
-
-batched_dataset = dataset.padded_batch(
-    BATCH_SIZE,
-    padded_shapes=((tf.TensorShape([None]), tf.TensorShape([])),   # source, lengths
-                   (tf.TensorShape([None]), tf.TensorShape([]))),  # targets, lengths
-    padding_values=((0, 0),   # Source padding, size padding (no size padding -- type is int)
-                    (0, 0)))  # Target padding, size padding (see above)
+batched_dataset = dataset.padded_batch(BATCH_SIZE,
+                                       padded_shapes=((tf.TensorShape([None]), tf.TensorShape([])),   # source, lengths
+                                                      (tf.TensorShape([None]), tf.TensorShape([]))),  # targets, lengths
+                                       padding_values=((0, 0),   # Source padding, size padding (no size padding -- type is int)
+                                                       (0, 0)))  # Target padding, size padding (see above)
 batched_iterator = batched_dataset.make_initializable_iterator()
 ((source, source_lengths), (target, target_lengths)) = batched_iterator.get_next()
 
-# Look up embedding:
-#   encoder_inputs: [max_time, batch_size]
-#   encoder_emb_inp: [max_time, batch_size, embedding_size]
-# Encoder Embeddings
+# Lookup embeddings
 embedding_encoder = tf.get_variable("embedding_encoder", [SRC_VOCAB_SIZE, SRC_EMBED_SIZE])
 encoder_emb_inp = tf.nn.embedding_lookup(embedding_encoder, source)
-# Decoder Embeddings
 embedding_decoder = tf.get_variable("embedding_decoder", [TGT_VOCAB_SIZE, TGT_EMBED_SIZE])
 decoder_emb_inp = tf.nn.embedding_lookup(embedding_decoder, target)
 
-# Build first RNN cell
+# Build and run Encoder LSTM
 encoder_cell = tf.nn.rnn_cell.BasicLSTMCell(NUM_UNITS)
-# Run Dynamic RNN
-#   encoder_outpus: [max_time, batch_size, num_units]
-#   encoder_state: [batch_size, num_units]
 encoder_outputs, encoder_state = tf.nn.dynamic_rnn(encoder_cell, encoder_emb_inp, sequence_length=source_lengths, dtype=tf.float32)
 
-# Build second RNN cell
+# Build and run Decoder LSTM with TrainingHelper and output projection layer
 decoder_cell = tf.nn.rnn_cell.BasicLSTMCell(NUM_UNITS)
-# Build a projection layer (will be placed on top of Decoder LSTM)
 projection_layer = layers_core.Dense(TGT_VOCAB_SIZE, use_bias=False)
-# Helper (for training)
 helper = tf.contrib.seq2seq.TrainingHelper(decoder_emb_inp, sequence_length=target_lengths)
-# Decoder
 decoder = tf.contrib.seq2seq.BasicDecoder(decoder_cell, helper, encoder_state, output_layer=projection_layer)
-# Dynamic decoding
 outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder)
 logits = outputs.rnn_output
 
+# Calculate loss
 crossent = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=target, logits=logits)
 target_weights = tf.sequence_mask(target_lengths, maxlen=tf.shape(target)[1], dtype=logits.dtype)
 train_loss = tf.reduce_sum(crossent * target_weights / BATCH_SIZE)
@@ -84,7 +75,7 @@ params = tf.trainable_variables()
 gradients = tf.gradients(train_loss, params)
 clipped_gradients, _ = tf.clip_by_global_norm(gradients, MAX_GRADIENT_NORM)
 
-# Optimization
+# Optimize model
 optimizer = tf.train.AdamOptimizer(LEARNING_RATE)
 update_step = optimizer.apply_gradients(zip(clipped_gradients, params))
 
@@ -94,10 +85,14 @@ with tf.Session() as sess:
     print('Initializing Tensorflow variables.')
     sess.run(tf.global_variables_initializer())
     sess.run(batched_iterator.initializer)
-    print(source.eval())
 
     for epoch in range(EPOCHS):
-        _, loss = sess.run([update_step, train_loss])
-        print('Epoch %s, Loss %s' % (epoch, loss))
+        _ = sess.run([update_step])
+        if epoch % PRINT_FREQ == 0:
+            loss, outputs, targets, sources = sess.run([train_loss, logits, target, source])
+            predictions = np.argmax(outputs, axis=2)
+            for i in range(PRINT_EXAMPLES):
+                print('>>> START PROTEIN <<<\n Target     :%s\n Prediction :%s\n Source     :%s' % (targets[i], predictions[i], sources[i]))
+            print('Epoch %s, Loss %s\n' % (epoch, loss))
 
 print('Program finished successfully.')

@@ -71,39 +71,11 @@ def integerize_raw_data():
     with open('primary.csv', 'w+') as file:
         writer = csv.writer(file)
         for sequence in primary:
-            writer.writerow(fasta_to_integers(sequence, shift=0))
+            writer.writerow(fasta_to_integers(sequence, shift=1))
 
     with open('secondary.csv', 'w+') as file:
         writer = csv.writer(file)
         for sequence in secondary:
-            writer.writerow(dssp_to_integers(sequence, shift=0))
+            writer.writerow(dssp_to_integers(sequence, shift=1))
 
     print('Data preparation complete! %s proteins prepared.' % len(primary))
-
-
-def read_integerized_input():
-    print('Beginning read from primary/secondary csv files...')
-
-    if not (os.path.isfile('primary.csv') and os.path.isfile('secondary.csv')):
-        integerize_raw_data()
-
-    primary = []
-    secondary = []
-    with open('primary.csv', 'r') as file:
-        reader = csv.reader(file, delimiter=',')
-        for row in reader:
-            primary.append(row)
-    with open('secondary.csv', 'r') as file:
-        reader = csv.reader(file, delimiter=',')
-        for row in reader:
-            secondary.append(row)
-
-    print('Primary/secondary data read from file successfully.')
-    return primary, secondary
-
-
-def get_batch(primary, secondary):
-    encoder_inputs = None
-    decoder_inputs = None
-    decoder_outputs = None
-    return encoder_inputs, decoder_inputs, decoder_outputs
