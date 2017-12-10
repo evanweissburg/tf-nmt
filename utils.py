@@ -76,6 +76,6 @@ def integerize_raw_data():
     with open('secondary.csv', 'w+') as file:
         writer = csv.writer(file)
         for sequence in secondary:
-            writer.writerow(dssp_to_integers(sequence, shift=1))
+            writer.writerow(dssp_to_integers(sequence, shift=3))
 
     print('Data preparation complete! %s proteins prepared.' % len(primary))
