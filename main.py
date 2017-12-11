@@ -7,19 +7,16 @@ import data_pipeline as pipeline
 
 print('Beginning run...')
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-np.random.seed(0)
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 np.set_printoptions(linewidth=10000)
 
 print('Creating Tensorflow graph...')
 
-PRINT_FREQ = 100       # how often should loss be evaluated
-PRINT_EXAMPLES = 5     # num of example proteins to print out every time loss is evaluated
-
+PRINT_FREQ = 5       # how often should loss be evaluated
 EPOCHS = 100000
 LEARNING_RATE = 0.0001
 NUM_UNITS = 20
-BATCH_SIZE = 5
+BATCH_SIZE = 1000
 MAX_GRADIENT_NORM = 1
 
 SRC_VOCAB_SIZE = 27  # A-Z + padding (0)
@@ -31,7 +28,8 @@ START_TOKEN = 1
 END_TOKEN = 2
 
 # Data pipeline
-batched_iterator, source, source_lengths, target_in, target_out, target_lengths = pipeline.get_batched_iterator(BATCH_SIZE, START_TOKEN, END_TOKEN)
+random_seed = tf.placeholder(tf.int64, shape=())
+batched_iterator, source, source_lengths, target_in, target_out, target_lengths = pipeline.get_batched_iterator(BATCH_SIZE, START_TOKEN, END_TOKEN, random_seed)
 
 # Lookup embeddings
 embedding_encoder = tf.get_variable("embedding_encoder", [SRC_VOCAB_SIZE, SRC_EMBED_SIZE])
@@ -54,7 +52,7 @@ logits = outputs.rnn_output
 # Calculate loss
 crossent = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=target_out, logits=logits)
 target_weights = tf.sequence_mask(target_lengths, maxlen=tf.shape(target_out)[1], dtype=logits.dtype)
-train_loss = tf.reduce_sum(crossent * target_weights / BATCH_SIZE)
+train_loss = tf.reduce_sum((crossent * target_weights) / BATCH_SIZE)
 
 # Calculate and clip gradients
 params = tf.trainable_variables()
@@ -70,19 +68,29 @@ print('Tensorflow graph created.')
 with tf.Session() as sess:
     print('Initializing Tensorflow variables.')
     sess.run(tf.global_variables_initializer())
-    sess.run(batched_iterator.initializer)
 
     for epoch in range(EPOCHS):
-        _ = sess.run([update_step])
+        sess.run(batched_iterator.initializer, feed_dict={random_seed: 0})
+        loss = sess.run(train_loss)
+        print('Epoch {}, Loss {:f}, Perplexity {:f}'.format(epoch, loss, np.exp(loss)))
+
         if epoch % PRINT_FREQ == 0:
-            loss, outputs, targets, sources = sess.run([train_loss, logits, target_out, source])
+            outputs, targets, sources = sess.run([logits, target_out, source])
             predictions = np.argmax(outputs, axis=2)
-            for i in range(PRINT_EXAMPLES):
+            for i in range(len(targets)):
                 frmt = '{:>3}'*len(targets[i])
                 print('>>> START PROTEIN <<<')
                 print('Target     :' + frmt.format(*targets[i]))
                 print('Prediction :' + frmt.format(*predictions[i]))
                 print('Source     :' + frmt.format(*np.insert(sources[i], list(sources[i]).index(0), [-1]) if sources[i][-1] == 0 else np.append(sources[i], [-1])))
-            print('Epoch %s, Loss %s\n' % (epoch, loss))
+        i = 0
+        while True:
+            try:
+                _ = sess.run(update_step)
+                i += 1
+                print(i)
+            except tf.errors.OutOfRangeError:
+                print('this')
+                break
 
 print('Program finished successfully.')
