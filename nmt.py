@@ -4,7 +4,7 @@ from tensorflow.python.layers import core as layers_core
 
 class TrainingModel:
     def __init__(self, train_iterator, src_vocab_size, tgt_vocab_size, src_embed_size, tgt_embed_size, num_units, batch_size, max_gradient_norm, learning_rate):
-        source, source_lengths, target_in, target_out, target_lengths = train_iterator.get_next()
+        source, target_in, target_out, source_lengths, target_lengths = train_iterator.get_next()
 
         # Lookup embeddings
         embedding_encoder = tf.get_variable("embedding_encoder", [src_vocab_size, src_embed_size])

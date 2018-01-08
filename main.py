@@ -28,11 +28,13 @@ SRC_PADDING = 0
 TGT_PADDING = 0
 SHUFFLE_SEED = 0
 SHUFFLE_BUFFER_SIZE = 10000
+BUCKETS = 2
+SRC_MAX_LEN = None
 
 train_graph = tf.Graph()
 
 with train_graph.as_default():
-    train_iterator = data_pipeline.get_batched_iterator(BATCH_SIZE, START_TOKEN, END_TOKEN, SRC_PADDING, TGT_PADDING, SHUFFLE_SEED, SHUFFLE_BUFFER_SIZE)
+    train_iterator = data_pipeline.get_batched_iterator(BATCH_SIZE, START_TOKEN, END_TOKEN, SRC_PADDING, TGT_PADDING, SHUFFLE_SEED, SHUFFLE_BUFFER_SIZE, BUCKETS, SRC_MAX_LEN)
     train_model = nmt.TrainingModel(train_iterator, SRC_VOCAB_SIZE, TGT_VOCAB_SIZE, SRC_EMBED_SIZE, TGT_EMBED_SIZE,
                                     NUM_UNITS, BATCH_SIZE, MAX_GRADIENT_NORM, LEARNING_RATE)
     initializer = tf.global_variables_initializer()
