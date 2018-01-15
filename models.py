@@ -19,9 +19,12 @@ class NMTModel:
         # Build and run Decoder LSTM with TrainingHelper and output projection layer
         decoder_cell = tf.nn.rnn_cell.BasicLSTMCell(hparams.num_units)
         projection_layer = layers_core.Dense(hparams.tgt_vsize, use_bias=False)
-        helper = tf.contrib.seq2seq.TrainingHelper(decoder_emb_inp, sequence_length=target_lengths)
+        if mode is 'TRAIN' or mode is 'EVAL':  # then decode using TrainingHelper
+            helper = tf.contrib.seq2seq.TrainingHelper(decoder_emb_inp, sequence_length=target_lengths)
+        elif mode is 'INFER':  # then decode using Beam Search
+            helper = tf.contrib.seq2seq.GreedyEmbeddingHelper(embedding_decoder, tf.fill([hparams.batch_size], hparams.sos), hparams.eos)
         decoder = tf.contrib.seq2seq.BasicDecoder(decoder_cell, helper, encoder_state, output_layer=projection_layer)
-        outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder)
+        outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder, maximum_iterations=tf.reduce_max(target_lengths))
         logits = outputs.rnn_output
 
         if mode is 'TRAIN' or mode is 'EVAL':  # then calculate loss
@@ -37,7 +40,7 @@ class NMTModel:
             optimizer = tf.train.AdamOptimizer(hparams.l_rate)
             self.update_step = optimizer.apply_gradients(zip(clipped_gradients, params))
 
-        if mode is 'EVAL':  # then allow access to input/output tensors to printout
+        if mode is 'EVAL' or mode is 'INFER':  # then allow access to input/output tensors to printout
             self.src = source
             self.tgt_in = target_in
             self.tgt_out = target_out
@@ -53,4 +56,4 @@ class NMTModel:
         return sess.run([self.loss, self.src, self.tgt_in, self.tgt_out, self.logits])
 
     def infer(self, sess):
-        return sess.run([])
+        return sess.run([self.src, self.tgt_in, self.tgt_out, self.logits])  # this should not exist

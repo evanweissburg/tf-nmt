@@ -56,7 +56,31 @@ def create_eval_model(hparams):
             iterator=iterator,
             mode='EVAL')
 
-    return TrainModel(
+    return EvalModel(
+        graph=graph,
+        model=model,
+        iterator=iterator)
+
+
+class InferModel(collections.namedtuple("InferModel", ("graph", "model", "iterator"))):
+    pass
+
+
+def create_infer_model(hparams):
+    graph = tf.Graph()
+
+    with graph.as_default():
+        iterator = data_pipeline.get_batched_iterator(
+            hparams,
+            src_loc='primary.csv',
+            tgt_loc='secondary.csv')
+
+        model = models.NMTModel(
+            hparams,
+            iterator=iterator,
+            mode='INFER')
+
+    return InferModel(
         graph=graph,
         model=model,
         iterator=iterator)
