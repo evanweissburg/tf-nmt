@@ -9,7 +9,6 @@ def create_or_load_model(hparams, model, sess):
     if latest_ckpt:
         model.saver.restore(sess, latest_ckpt)
     else:
-        print('initializing!')
         sess.run(tf.global_variables_initializer())
 
     return model

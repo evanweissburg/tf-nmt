@@ -37,6 +37,12 @@ class NMTModel:
             optimizer = tf.train.AdamOptimizer(hparams.l_rate)
             self.update_step = optimizer.apply_gradients(zip(clipped_gradients, params))
 
+        if mode is 'EVAL':  # then allow access to input/output tensors to printout
+            self.src = source
+            self.tgt_in = target_in
+            self.tgt_out = target_out
+            self.logits = logits
+
         # Designate a saver operation
         self.saver = tf.train.Saver(tf.global_variables())
 
@@ -44,7 +50,7 @@ class NMTModel:
         return sess.run([self.update_step, self.loss])
 
     def eval(self, sess):
-        return sess.run([self.loss])
+        return sess.run([self.loss, self.src, self.tgt_in, self.tgt_out, self.logits])
 
     def infer(self, sess):
         return sess.run([])

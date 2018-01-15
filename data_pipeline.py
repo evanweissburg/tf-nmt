@@ -2,7 +2,7 @@ import tensorflow as tf
 import os
 import utils
 
-DEFAULT_BUCKET_WIDTH = 10
+DEFAULT_BUCKET_WIDTH = 10  # NOTE THAT THIS SHOULD BE FIXED ALONG WITH SRC DATA OVERHAUL
 
 
 def get_batched_iterator(hparams, src_loc, tgt_loc):
