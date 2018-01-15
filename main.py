@@ -3,6 +3,7 @@ import os
 import tensorflow as tf
 import itertools
 
+import utils
 import model_builder
 import hyper_params
 
@@ -11,11 +12,9 @@ tf.set_random_seed(0)
 np.set_printoptions(linewidth=10000, threshold=1000000000)
 
 SAVE_MODEL_DIRECTORY = '/home/nave01314/Documents/tf-nmt-models/'
-try:
-    import shutil
-    shutil.rmtree(SAVE_MODEL_DIRECTORY)
-except Exception:
-    print('no folder')
+
+import shutil
+shutil.rmtree(SAVE_MODEL_DIRECTORY, ignore_errors=True)
 
 TRAIN_PRINT_FREQ = 5       # how many batches between evaluating loss
 EVAL_PRINT_FREQ = 100
@@ -24,7 +23,7 @@ INFER_PRINT_FREQ = 500
 INFER_MAX_PRINTOUTS = 5
 
 EPOCHS = 2000
-LEARNING_RATE = 0.001
+LEARNING_RATE = 0.1
 NUM_UNITS = 10
 BATCH_SIZE = 400
 MAX_GRADIENT_NORM = 1
@@ -63,40 +62,30 @@ for epoch in range(EPOCHS):
         try:
             _, loss = loaded_train_model.train(train_sess)
             epoch_loss += loss
+
             if batch % TRAIN_PRINT_FREQ == 0:
                 print('TRAIN STEP >>> Epoch {}: Batch {} completed with loss {}'.format(epoch, batch, loss))
+
             if batch % EVAL_PRINT_FREQ == 0:
                 loaded_train_model.saver.save(train_sess, hparams.model_dir)
                 with eval_model.graph.as_default():
                     loaded_eval_model = model_builder.create_or_load_model(hparams, eval_model.model, eval_sess)
                 eval_sess.run(eval_model.iterator.initializer)
-                loss, src, targetsin, targetsout, logits = loaded_eval_model.eval(eval_sess)
+                loss, src, tgts, logits = loaded_eval_model.eval(eval_sess)
                 print('EVAL BEGIN >>> Epoch {}: Batch {} completed with loss {}'.format(epoch, batch, loss))
-                predictions = np.argmax(logits, axis=2)
-                for i in range(min(len(targetsout), EVAL_MAX_PRINTOUTS)):
-                    frmt = '{:>3}'*len(targetsout[i])
-                    print('>>> START PROTEIN <<<')
-                    print('Targetin   :' + frmt.format(*targetsin[i]))
-                    print('Targetout  :' + frmt.format(*targetsout[i]))
-                    print('Prediction :' + frmt.format(*predictions[i]))
-                    print('Source     :' + frmt.format(*np.insert(src[i], list(src[i]).index(0), [-1]) if src[i][-1] == 0 else np.append(src[i], [-1])))
+                utils.print_prots(logits, src, tgts, EVAL_MAX_PRINTOUTS)
                 print('EVAL END >>> Epoch {}: Batch {} completed with loss {}'.format(epoch, batch, loss))
+
             if batch % INFER_PRINT_FREQ == 0:
                 loaded_train_model.saver.save(train_sess, hparams.model_dir)
                 with infer_model.graph.as_default():
                     loaded_infer_model = model_builder.create_or_load_model(hparams, infer_model.model, infer_sess)
                 infer_sess.run(infer_model.iterator.initializer)
-                src, targetsin, targetsout, logits = loaded_infer_model.infer(infer_sess)
+                src, tgts, logits = loaded_infer_model.infer(infer_sess)
                 print('INFER BEGIN >>> Epoch {}: Batch {} completed'.format(epoch, batch, loss))
-                predictions = np.argmax(logits, axis=2)
-                for i in range(min(len(targetsout), INFER_MAX_PRINTOUTS)):
-                    frmt = '{:>3}'*len(targetsout[i])
-                    print('>>> START PROTEIN <<<')
-                    print('Targetin   :' + frmt.format(*targetsin[i]))
-                    print('Targetout  :' + frmt.format(*targetsout[i]))
-                    print('Prediction :' + frmt.format(*predictions[i]))
-                    print('Source     :' + frmt.format(*np.insert(src[i], list(src[i]).index(0), [-1]) if src[i][-1] == 0 else np.append(src[i], [-1])))
+                utils.print_prots(logits, src, tgts, INFER_MAX_PRINTOUTS)
                 print('INFER END >>> Epoch {}: Batch {} completed'.format(epoch, batch, loss))
+
         except tf.errors.OutOfRangeError:
             print('Epoch {} completed with average loss {}'.format(epoch, epoch_loss/(batch+1)))
             break

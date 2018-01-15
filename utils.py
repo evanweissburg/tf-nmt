@@ -1,8 +1,20 @@
 import csv
 import os
+import numpy as np
 
 int_to_dssp_letter = {'0': ' ', '1': 'H', '2': 'B', '3': 'E', '4': 'G', '5': 'I', '6': 'T', '7': 'S'}
 dssp_letter_to_int = inv_map = {v: k for k, v in int_to_dssp_letter.items()}
+
+
+def print_prots(logits, src, tgts=None, max_prints=None):
+    preds = np.argmax(logits, axis=2)
+    count = min(max_prints, len(preds)) if max_prints else len(preds)
+    for i in range(count):
+        frmt = '{:>3}'*len(preds[i])
+        print('>>> START PROTEIN <<<')
+        print('Target     :' + frmt.format(*tgts[i]))
+        print('Prediction :' + frmt.format(*preds[i]))
+        print('Source     :' + frmt.format(*np.insert(src[i], list(src[i]).index(0), [-1]) if src[i][-1] == 0 else np.append(src[i], [-1])))
 
 
 def fasta_to_integers(protein: str, shift=0):
