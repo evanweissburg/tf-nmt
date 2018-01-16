@@ -16,13 +16,14 @@ class NMTModel:
         encoder_cell = tf.nn.rnn_cell.BasicLSTMCell(hparams.num_units)
         encoder_outputs, encoder_state = tf.nn.dynamic_rnn(encoder_cell, encoder_emb_inp, sequence_length=source_lengths, dtype=tf.float32)
 
-        # Build and run Decoder LSTM with TrainingHelper and output projection layer
+        # Build and run Decoder LSTM with Helper and output projection layer
         decoder_cell = tf.nn.rnn_cell.BasicLSTMCell(hparams.num_units)
         projection_layer = layers_core.Dense(hparams.tgt_vsize, use_bias=False)
-        if mode is 'TRAIN' or mode is 'EVAL':  # then decode using TrainingHelper
-            helper = tf.contrib.seq2seq.TrainingHelper(decoder_emb_inp, sequence_length=target_lengths)
-        elif mode is 'INFER':  # then decode using Beam Search
-            helper = tf.contrib.seq2seq.GreedyEmbeddingHelper(embedding_decoder, tf.fill([hparams.batch_size], hparams.sos), hparams.eos)
+        # if mode is 'TRAIN' or mode is 'EVAL':  # then decode using TrainingHelper
+        #     helper = tf.contrib.seq2seq.TrainingHelper(decoder_emb_inp, sequence_length=target_lengths)
+        # elif mode is 'INFER':  # then decode using Beam Search
+        #     helper = tf.contrib.seq2seq.GreedyEmbeddingHelper(embedding_decoder, tf.fill([hparams.batch_size], hparams.sos), hparams.eos)
+        helper = tf.contrib.seq2seq.GreedyEmbeddingHelper(embedding_decoder, tf.fill([hparams.batch_size], hparams.sos), hparams.eos)
         decoder = tf.contrib.seq2seq.BasicDecoder(decoder_cell, helper, encoder_state, output_layer=projection_layer)
         outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder, maximum_iterations=tf.reduce_max(target_lengths))
         logits = outputs.rnn_output
@@ -42,9 +43,8 @@ class NMTModel:
 
         if mode is 'EVAL' or mode is 'INFER':  # then allow access to input/output tensors to printout
             self.src = source
-            self.tgt_in = target_in
-            self.tgt_out = target_out
-            self.logits = logits
+            self.tgt = target_out
+            self.preds = tf.argmax(logits, axis=2)
 
         # Designate a saver operation
         self.saver = tf.train.Saver(tf.global_variables())
@@ -53,7 +53,7 @@ class NMTModel:
         return sess.run([self.update_step, self.loss])
 
     def eval(self, sess):
-        return sess.run([self.loss, self.src, self.tgt_in, self.tgt_out, self.logits])
+        return sess.run([self.loss, self.src, self.tgt, self.preds])
 
     def infer(self, sess):
-        return sess.run([self.src, self.tgt_in, self.tgt_out, self.logits])  # this should not exist
+        return sess.run([self.src, self.tgt, self.preds])  # tgt should not exist

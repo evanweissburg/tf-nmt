@@ -6,8 +6,7 @@ int_to_dssp_letter = {'0': ' ', '1': 'H', '2': 'B', '3': 'E', '4': 'G', '5': 'I'
 dssp_letter_to_int = inv_map = {v: k for k, v in int_to_dssp_letter.items()}
 
 
-def print_prots(logits, src, tgts=None, max_prints=None):
-    preds = np.argmax(logits, axis=2)
+def print_prots(preds, src, tgts=None, max_prints=None):
     count = min(max_prints, len(preds)) if max_prints else len(preds)
     for i in range(count):
         frmt = '{:>3}'*len(preds[i])

@@ -21,13 +21,13 @@ def get_batched_iterator(hparams, src_loc, tgt_loc):
 
     def batch(x):
         return x.padded_batch(hparams.batch_size,
-                              padded_shapes=(tf.TensorShape([None]), tf.TensorShape([None]), tf.TensorShape([None]), tf.TensorShape([]), tf.TensorShape([])),  # targets, lengths
-                              padding_values=(hparams.src_pad, hparams.tgt_pad, hparams.tgt_pad, 0, 0)) # pad with 0, do not pad int, pad with 0, pad with 0, do not pad int
+                              padded_shapes=(tf.TensorShape([None]), tf.TensorShape([None]), tf.TensorShape([None]), tf.TensorShape([]), tf.TensorShape([])),
+                              padding_values=(hparams.src_pad, hparams.tgt_pad, hparams.tgt_pad, 0, 0))
 
     if hparams.num_buckets > 1:
         def key_func(unused_1, unused_2, unused_3, src_len, tgt_len):
             if hparams.max_len:
-                bucket_width = (hparams.max_len + hparams.num_buckets - 1) // hparams.num_buckets  # if max length is known, width of buckets will be equal to (max len / num buckets) + 1
+                bucket_width = (hparams.max_len + hparams.num_buckets - 1) // hparams.num_buckets
             else:
                 bucket_width = DEFAULT_BUCKET_WIDTH
 

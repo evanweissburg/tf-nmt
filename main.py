@@ -16,17 +16,18 @@ SAVE_MODEL_DIRECTORY = '/home/nave01314/Documents/tf-nmt-models/'
 import shutil
 shutil.rmtree(SAVE_MODEL_DIRECTORY, ignore_errors=True)
 
-TRAIN_PRINT_FREQ = 5       # how many batches between evaluating loss
+TRAIN_PRINT_FREQ = 10       # how many batches between evaluating loss
 EVAL_PRINT_FREQ = 100
 EVAL_MAX_PRINTOUTS = 5
 INFER_PRINT_FREQ = 500
 INFER_MAX_PRINTOUTS = 5
 
+# 500/32, 10/400,
 EPOCHS = 2000
-LEARNING_RATE = 0.1
-NUM_UNITS = 10
-BATCH_SIZE = 400
-MAX_GRADIENT_NORM = 1
+LEARNING_RATE = 0.001
+NUM_UNITS = 100
+BATCH_SIZE = 160
+MAX_GRADIENT_NORM = 5.0
 
 SRC_VOCAB_SIZE = 27  # A-Z + padding
 TGT_VOCAB_SIZE = 11  # 8 + padding + sos + eos
