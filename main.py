@@ -11,7 +11,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 tf.set_random_seed(0)
 np.set_printoptions(linewidth=10000, threshold=1000000000)
 
-SAVE_MODEL_DIRECTORY = '/home/nave01314/Documents/tf-nmt-models/'
+SAVE_MODEL_DIRECTORY = '/Users/ianbulovic/Documents/Other/tf-nmt-models/tf-nmt-models'
 
 import shutil
 shutil.rmtree(SAVE_MODEL_DIRECTORY, ignore_errors=True)

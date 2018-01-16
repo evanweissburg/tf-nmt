@@ -18,13 +18,25 @@ class NMTModel:
 
         # Build and run Decoder LSTM with Helper and output projection layer
         decoder_cell = tf.nn.rnn_cell.BasicLSTMCell(hparams.num_units)
+
+
+        # Create an attention mechanism
+        attention_mechanism = tf.contrib.seq2seq.LuongAttention(
+            hparams.num_units, encoder_outputs,
+            memory_sequence_length=source_lengths)
+        decoder_cell = tf.contrib.seq2seq.AttentionWrapper(
+            decoder_cell, attention_mechanism,
+            attention_layer_size=hparams.num_units)
+
+        decoder_initial_state = decoder_cell.zero_state(hparams.batch_size, tf.float32).clone(cell_state=encoder_state)
+
         projection_layer = layers_core.Dense(hparams.tgt_vsize, use_bias=False)
         # if mode is 'TRAIN' or mode is 'EVAL':  # then decode using TrainingHelper
         #     helper = tf.contrib.seq2seq.TrainingHelper(decoder_emb_inp, sequence_length=target_lengths)
         # elif mode is 'INFER':  # then decode using Beam Search
         #     helper = tf.contrib.seq2seq.GreedyEmbeddingHelper(embedding_decoder, tf.fill([hparams.batch_size], hparams.sos), hparams.eos)
         helper = tf.contrib.seq2seq.GreedyEmbeddingHelper(embedding_decoder, tf.fill([hparams.batch_size], hparams.sos), hparams.eos)
-        decoder = tf.contrib.seq2seq.BasicDecoder(decoder_cell, helper, encoder_state, output_layer=projection_layer)
+        decoder = tf.contrib.seq2seq.BasicDecoder(decoder_cell, helper, decoder_initial_state, output_layer=projection_layer)
         outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder, maximum_iterations=tf.reduce_max(target_lengths))
         logits = outputs.rnn_output
 
