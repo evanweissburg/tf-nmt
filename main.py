@@ -7,7 +7,7 @@ import model_builder
 
 np.set_printoptions(linewidth=10000, threshold=1000000000)
 
-SAVE_MODEL_DIRECTORY = '/home/nave01314/Documents/tf-nmt-models/'
+SAVE_MODEL_DIRECTORY = '/Users/ianbulovic/Documents/Other/tf-nmt-models/tf-nmt-models'
 
 # Sets calculation frequency (modulo per batch) and quantity of output
 TRAIN_PRINT_FREQ = 10
