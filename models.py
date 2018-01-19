@@ -5,6 +5,7 @@ from tensorflow.python.layers import core as layers_core
 class NMTModel:
     def __init__(self, hparams, iterator, mode):
         source, target_in, target_out, source_lengths, target_lengths = iterator.get_next()
+        true_batch_size = tf.size(source_lengths)
 
         # Lookup embeddings
         embedding_encoder = tf.get_variable("embedding_encoder", [hparams.src_vsize, hparams.src_emsize])
@@ -22,16 +23,16 @@ class NMTModel:
         # if mode is 'TRAIN' or mode is 'EVAL':  # then decode using TrainingHelper
         #     helper = tf.contrib.seq2seq.TrainingHelper(decoder_emb_inp, sequence_length=target_lengths)
         # elif mode is 'INFER':  # then decode using Beam Search
-        #     helper = tf.contrib.seq2seq.GreedyEmbeddingHelper(embedding_decoder, tf.fill([hparams.batch_size], hparams.sos), hparams.eos)
-        helper = tf.contrib.seq2seq.GreedyEmbeddingHelper(embedding_decoder, tf.fill([hparams.batch_size], hparams.sos), hparams.eos)
+        #     helper = tf.contrib.seq2seq.GreedyEmbeddingHelper(embedding_decoder, tf.fill([true_batch_size], hparams.sos), hparams.eos)
+        helper = tf.contrib.seq2seq.GreedyEmbeddingHelper(embedding_decoder, tf.fill([true_batch_size], hparams.sos), hparams.eos)
         decoder = tf.contrib.seq2seq.BasicDecoder(decoder_cell, helper, encoder_state, output_layer=projection_layer)
-        outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder, maximum_iterations=tf.reduce_max(target_lengths))
+        outputs, _, self.test = tf.contrib.seq2seq.dynamic_decode(decoder, maximum_iterations=tf.reduce_max(target_lengths))
         logits = outputs.rnn_output
 
         if mode is 'TRAIN' or mode is 'EVAL':  # then calculate loss
             crossent = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=target_out, logits=logits)
             target_weights = tf.sequence_mask(target_lengths, maxlen=tf.shape(target_out)[1], dtype=logits.dtype)
-            self.loss = tf.reduce_sum((crossent * target_weights) / hparams.batch_size)
+            self.loss = tf.reduce_sum((crossent * target_weights)) / tf.cast(true_batch_size, tf.float32)
 
         if mode is 'TRAIN':  # then calculate/clip gradients, then optimize model
             params = tf.trainable_variables()
@@ -56,4 +57,5 @@ class NMTModel:
         return sess.run([self.loss, self.src, self.tgt, self.preds])
 
     def infer(self, sess):
-        return sess.run([self.src, self.tgt, self.preds])  # tgt should not exist
+        return sess.run([self.src, self.tgt, self.preds])  # tgt should not exist (temporary debugging only)
+

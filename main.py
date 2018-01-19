@@ -1,49 +1,56 @@
 import numpy as np
-import os
 import tensorflow as tf
 import itertools
 
 import utils
 import model_builder
-import hyper_params
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
-tf.set_random_seed(0)
 np.set_printoptions(linewidth=10000, threshold=1000000000)
 
 SAVE_MODEL_DIRECTORY = '/home/nave01314/Documents/tf-nmt-models/'
 
-import shutil
-shutil.rmtree(SAVE_MODEL_DIRECTORY, ignore_errors=True)
-
-TRAIN_PRINT_FREQ = 10       # how many batches between evaluating loss
+# Sets calculation frequency (modulo per batch) and quantity of output
+TRAIN_PRINT_FREQ = 10
 EVAL_PRINT_FREQ = 100
 EVAL_MAX_PRINTOUTS = 5
-INFER_PRINT_FREQ = 500
+INFER_PRINT_FREQ = 100
 INFER_MAX_PRINTOUTS = 5
 
-# 500/32, 10/400,
+# Standard hparams
 EPOCHS = 2000
 LEARNING_RATE = 0.001
-NUM_UNITS = 100
-BATCH_SIZE = 160
+NUM_UNITS = 50
+BATCH_SIZE = 500
 MAX_GRADIENT_NORM = 5.0
 
+# VSize/EmSize
 SRC_VOCAB_SIZE = 27  # A-Z + padding
 TGT_VOCAB_SIZE = 11  # 8 + padding + sos + eos
 SRC_EMBED_SIZE = 15
 TGT_EMBED_SIZE = 10
 
+# Integer sos, eos, pad tokens
 START_TOKEN = 1
 END_TOKEN = 2
 SRC_PADDING = 0
 TGT_PADDING = 0
+
+# Misc
 SHUFFLE_SEED = 0
 SHUFFLE_BUFFER_SIZE = 10000
-NUM_BUCKETS = 10
+NUM_BUCKETS = 1
 MAX_LEN = None
 
-hparams = hyper_params.HParams(SAVE_MODEL_DIRECTORY, LEARNING_RATE, NUM_UNITS, BATCH_SIZE, MAX_GRADIENT_NORM, SRC_VOCAB_SIZE, TGT_VOCAB_SIZE, SRC_EMBED_SIZE, TGT_EMBED_SIZE, START_TOKEN, END_TOKEN, SRC_PADDING, TGT_PADDING, SHUFFLE_SEED, SHUFFLE_BUFFER_SIZE, NUM_BUCKETS, MAX_LEN)
+hparams = tf.contrib.training.HParams(model_dir=SAVE_MODEL_DIRECTORY, l_rate=LEARNING_RATE, num_units=NUM_UNITS,
+                                      batch_size=BATCH_SIZE, max_gradient_norm=MAX_GRADIENT_NORM,
+                                      src_vsize=SRC_VOCAB_SIZE, tgt_vsize=TGT_VOCAB_SIZE, src_emsize=SRC_EMBED_SIZE,
+                                      tgt_emsize=TGT_EMBED_SIZE, sos=START_TOKEN, eos=END_TOKEN, src_pad=SRC_PADDING,
+                                      tgt_pad=TGT_PADDING, shuffle_seed=SHUFFLE_SEED,
+                                      shuffle_buffer_size=SHUFFLE_BUFFER_SIZE, num_buckets=NUM_BUCKETS, max_len=MAX_LEN)
+
+# Clear SAVE_MODEL_DIRECTORY before each run (fresh start)
+import shutil
+shutil.rmtree(hparams.model_dir, ignore_errors=True)
 
 train_model = model_builder.create_train_model(hparams)
 eval_model = model_builder.create_eval_model(hparams)
@@ -55,7 +62,8 @@ infer_sess = tf.Session(graph=infer_model.graph)
 
 with train_model.graph.as_default():
     loaded_train_model = model_builder.create_or_load_model(hparams, train_model.model, train_sess)
-
+NUM_BUCKETS = 1
+MAX_LEN = None
 for epoch in range(EPOCHS):
     train_sess.run(train_model.iterator.initializer)
     epoch_loss = 0

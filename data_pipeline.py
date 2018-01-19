@@ -2,8 +2,6 @@ import tensorflow as tf
 import os
 import utils
 
-DEFAULT_BUCKET_WIDTH = 10  # NOTE THAT THIS SHOULD BE FIXED ALONG WITH SRC DATA OVERHAUL
-
 
 def get_batched_iterator(hparams, src_loc, tgt_loc):
     if not (os.path.exists('primary.csv') and os.path.exists('secondary.csv')):
@@ -26,11 +24,7 @@ def get_batched_iterator(hparams, src_loc, tgt_loc):
 
     if hparams.num_buckets > 1:
         def key_func(unused_1, unused_2, unused_3, src_len, tgt_len):
-            if hparams.max_len:
-                bucket_width = (hparams.max_len + hparams.num_buckets - 1) // hparams.num_buckets
-            else:
-                bucket_width = DEFAULT_BUCKET_WIDTH
-
+            bucket_width = (hparams.max_len + hparams.num_buckets - 1) // hparams.num_buckets
             bucket_id = tf.maximum(src_len // bucket_width, tgt_len // bucket_width)
             return tf.cast(tf.minimum(hparams.num_buckets, bucket_id), tf.int64)  # all extra long src go to last bucket
 

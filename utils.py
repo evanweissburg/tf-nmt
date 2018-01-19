@@ -90,3 +90,13 @@ def integerize_raw_data():
             writer.writerow(dssp_to_integers(sequence, shift=3))
 
     print('Data preparation complete! %s proteins prepared.' % len(primary))
+
+
+def get_data_stats():
+    with open('primary.csv', 'r+') as file:
+        reader = csv.reader(file, delimiter=',')
+        maxi = 0
+        for row in reader:
+            maxi = max(maxi, len(row))
+            print(len(row))
+    return maxi
