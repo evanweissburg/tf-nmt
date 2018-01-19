@@ -7,7 +7,7 @@ import model_builder
 
 np.set_printoptions(linewidth=10000, threshold=1000000000)
 
-SAVE_MODEL_DIRECTORY = '/Users/ianbulovic/Documents/Other/tf-nmt-models/tf-nmt-models'
+SAVE_MODEL_DIRECTORY = '/home/nave01314/IdeaProjects/tf-nmt/ckpts/'
 
 # Sets calculation frequency (modulo per batch) and quantity of output
 TRAIN_PRINT_FREQ = 10
@@ -20,7 +20,7 @@ INFER_MAX_PRINTOUTS = 5
 EPOCHS = 2000
 LEARNING_RATE = 0.001
 NUM_UNITS = 50
-BATCH_SIZE = 500
+BATCH_SIZE = 100
 MAX_GRADIENT_NORM = 5.0
 
 # VSize/EmSize
@@ -62,8 +62,7 @@ infer_sess = tf.Session(graph=infer_model.graph)
 
 with train_model.graph.as_default():
     loaded_train_model = model_builder.create_or_load_model(hparams, train_model.model, train_sess)
-NUM_BUCKETS = 1
-MAX_LEN = None
+
 for epoch in range(EPOCHS):
     train_sess.run(train_model.iterator.initializer)
     epoch_loss = 0
