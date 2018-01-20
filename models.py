@@ -4,6 +4,7 @@ from tensorflow.python.layers import core as layers_core
 
 class NMTModel:
     def __init__(self, hparams, iterator, mode):
+        tf.set_random_seed(hparams.graph_seed)
         source, target_in, target_out, source_lengths, target_lengths = iterator.get_next()
         true_batch_size = tf.size(source_lengths)
 
@@ -20,10 +21,11 @@ class NMTModel:
         # Build and run Decoder LSTM with Helper and output projection layer
         decoder_cell = tf.nn.rnn_cell.BasicLSTMCell(hparams.num_units)
         projection_layer = layers_core.Dense(hparams.tgt_vsize, use_bias=False)
-        # if mode is 'TRAIN' or mode is 'EVAL':  # then decode using TrainingHelper
-        #     helper = tf.contrib.seq2seq.TrainingHelper(decoder_emb_inp, sequence_length=target_lengths)
-        # elif mode is 'INFER':  # then decode using Beam Search
-        #     helper = tf.contrib.seq2seq.GreedyEmbeddingHelper(embedding_decoder, tf.fill([true_batch_size], hparams.sos), hparams.eos)
+        #if mode is 'TRAIN' or mode is 'EVAL':  # then decode using TrainingHelper
+             #helper = tf.contrib.seq2seq.TrainingHelper(decoder_emb_inp, sequence_length=target_lengths)
+        #elif mode is 'INFER':  # then decode using Beam Search
+             #helper = tf.contrib.seq2seq.GreedyEmbeddingHelper(embedding_decoder, tf.fill([true_batch_size], hparams.sos), hparams.eos)
+        # ALWAYS USE INFERENCE-STYLE DECODER INSTEAD OF TRAININGHELPER
         helper = tf.contrib.seq2seq.GreedyEmbeddingHelper(embedding_decoder, tf.fill([true_batch_size], hparams.sos), hparams.eos)
         decoder = tf.contrib.seq2seq.BasicDecoder(decoder_cell, helper, encoder_state, output_layer=projection_layer)
         outputs, _, self.test = tf.contrib.seq2seq.dynamic_decode(decoder, maximum_iterations=tf.reduce_max(target_lengths))

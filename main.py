@@ -12,7 +12,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 SAVE_MODEL_DIRECTORY = '/home/nave01314/IdeaProjects/tf-nmt/ckpts/'
 
 # Sets calculation frequency (modulo per batch) and quantity of output
-TRAIN_PRINT_FREQ = 10
+TRAIN_PRINT_FREQ = 1
 EVAL_PRINT_FREQ = 100
 EVAL_MAX_PRINTOUTS = 5
 INFER_PRINT_FREQ = 100
@@ -38,6 +38,7 @@ SRC_PADDING = 0
 TGT_PADDING = 0
 
 # Misc
+GRAPH_SEED = 1
 SHUFFLE_SEED = 0
 SHUFFLE_BUFFER_SIZE = 10000
 NUM_BUCKETS = 1
@@ -47,7 +48,7 @@ hparams = tf.contrib.training.HParams(model_dir=SAVE_MODEL_DIRECTORY, l_rate=LEA
                                       batch_size=BATCH_SIZE, max_gradient_norm=MAX_GRADIENT_NORM,
                                       src_vsize=SRC_VOCAB_SIZE, tgt_vsize=TGT_VOCAB_SIZE, src_emsize=SRC_EMBED_SIZE,
                                       tgt_emsize=TGT_EMBED_SIZE, sos=START_TOKEN, eos=END_TOKEN, src_pad=SRC_PADDING,
-                                      tgt_pad=TGT_PADDING, shuffle_seed=SHUFFLE_SEED,
+                                      tgt_pad=TGT_PADDING, shuffle_seed=SHUFFLE_SEED, graph_seed=GRAPH_SEED,
                                       shuffle_buffer_size=SHUFFLE_BUFFER_SIZE, num_buckets=NUM_BUCKETS, max_len=MAX_LEN)
 
 # Clear SAVE_MODEL_DIRECTORY before each run (fresh start)
