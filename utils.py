@@ -79,12 +79,12 @@ def integerize_raw_data():
         primary.append(protein[1])
         secondary.append(protein[3])
 
-    with open('primary.csv', 'w+') as file:
+    with open('primary.csv', 'w+', newline='') as file:
         writer = csv.writer(file)
         for sequence in primary:
             writer.writerow(fasta_to_integers(sequence, shift=1))
 
-    with open('secondary.csv', 'w+') as file:
+    with open('secondary.csv', 'w+', newline='') as file:
         writer = csv.writer(file)
         for sequence in secondary:
             writer.writerow(dssp_to_integers(sequence, shift=3))
