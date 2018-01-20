@@ -1,11 +1,13 @@
 import numpy as np
 import tensorflow as tf
 import itertools
+import os
 
 import utils
 import model_builder
 
 np.set_printoptions(linewidth=10000, threshold=1000000000)
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 SAVE_MODEL_DIRECTORY = '/home/nave01314/IdeaProjects/tf-nmt/ckpts/'
 
@@ -39,7 +41,7 @@ TGT_PADDING = 0
 SHUFFLE_SEED = 0
 SHUFFLE_BUFFER_SIZE = 10000
 NUM_BUCKETS = 1
-MAX_LEN = None
+MAX_LEN = 5050  # Largest is 5037 (see utils.get_data_stats() )
 
 hparams = tf.contrib.training.HParams(model_dir=SAVE_MODEL_DIRECTORY, l_rate=LEARNING_RATE, num_units=NUM_UNITS,
                                       batch_size=BATCH_SIZE, max_gradient_norm=MAX_GRADIENT_NORM,
