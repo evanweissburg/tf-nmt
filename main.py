@@ -3,57 +3,16 @@ import tensorflow as tf
 import itertools
 import os
 
+import hparams_setup
 import utils
 import model_builder
 
 np.set_printoptions(linewidth=10000, threshold=1000000000)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
-SAVE_MODEL_DIRECTORY = '/home/nave01314/IdeaProjects/tf-nmt/ckpts/'
-
-# Sets calculation frequency (modulo per batch) and quantity of output
-TRAIN_PRINT_FREQ = 1
-EVAL_PRINT_FREQ = 100
-EVAL_MAX_PRINTOUTS = 5
-INFER_PRINT_FREQ = 100
-INFER_MAX_PRINTOUTS = 5
-
-# Standard hparams
-EPOCHS = 2000
-LEARNING_RATE = 0.001
-NUM_UNITS = 50
-BATCH_SIZE = 100
-MAX_GRADIENT_NORM = 5.0
-
-# VSize/EmSize
-SRC_VOCAB_SIZE = 27  # A-Z + padding
-TGT_VOCAB_SIZE = 11  # 8 + padding + sos + eos
-SRC_EMBED_SIZE = 15
-TGT_EMBED_SIZE = 10
-
-# Integer sos, eos, pad tokens
-START_TOKEN = 1
-END_TOKEN = 2
-SRC_PADDING = 0
-TGT_PADDING = 0
-
-# Misc
-GRAPH_SEED = 5
-SHUFFLE_SEED = 0
-SHUFFLE_BUFFER_SIZE = 10000
-NUM_BUCKETS = 1
-MAX_LEN = 5050  # Largest is 5037 (see utils.get_data_stats() )
-
-hparams = tf.contrib.training.HParams(model_dir=SAVE_MODEL_DIRECTORY, l_rate=LEARNING_RATE, num_units=NUM_UNITS,
-                                      batch_size=BATCH_SIZE, max_gradient_norm=MAX_GRADIENT_NORM,
-                                      src_vsize=SRC_VOCAB_SIZE, tgt_vsize=TGT_VOCAB_SIZE, src_emsize=SRC_EMBED_SIZE,
-                                      tgt_emsize=TGT_EMBED_SIZE, sos=START_TOKEN, eos=END_TOKEN, src_pad=SRC_PADDING,
-                                      tgt_pad=TGT_PADDING, shuffle_seed=SHUFFLE_SEED, graph_seed=GRAPH_SEED,
-                                      shuffle_buffer_size=SHUFFLE_BUFFER_SIZE, num_buckets=NUM_BUCKETS, max_len=MAX_LEN)
-
-# Clear SAVE_MODEL_DIRECTORY before each run (fresh start)
-import shutil
-shutil.rmtree(hparams.model_dir, ignore_errors=True)
+hparams = hparams_setup.get_hparams()
+utils.clear_previous_runs(model_dir=hparams.model_dir, data_dir=hparams.data_dir)
+utils.make_dataset(max_len=hparams.max_len, max_size=hparams.dataset_max_size, data_dir=hparams.data_dir)
 
 train_model = model_builder.create_train_model(hparams)
 eval_model = model_builder.create_eval_model(hparams)
@@ -66,7 +25,7 @@ infer_sess = tf.Session(graph=infer_model.graph)
 with train_model.graph.as_default():
     loaded_train_model = model_builder.create_or_load_model(hparams, train_model.model, train_sess)
 
-for epoch in range(EPOCHS):
+for epoch in range(hparams.epochs):
     train_sess.run(train_model.iterator.initializer)
     epoch_loss = 0
     for batch in itertools.count():
@@ -74,27 +33,27 @@ for epoch in range(EPOCHS):
             _, loss = loaded_train_model.train(train_sess)
             epoch_loss += loss
 
-            if batch % TRAIN_PRINT_FREQ == 0:
+            if batch % hparams.train_print_freq == 0:
                 print('TRAIN STEP >>> Epoch {}: Batch {} completed with loss {}'.format(epoch, batch, loss))
 
-            if batch % EVAL_PRINT_FREQ == 0:
+            if batch % hparams.eval_print_freq == 0:
                 loaded_train_model.saver.save(train_sess, hparams.model_dir)
                 with eval_model.graph.as_default():
                     loaded_eval_model = model_builder.create_or_load_model(hparams, eval_model.model, eval_sess)
                 eval_sess.run(eval_model.iterator.initializer)
                 loss, src, tgts, logits = loaded_eval_model.eval(eval_sess)
                 print('EVAL BEGIN >>> Epoch {}: Batch {} completed with loss {}'.format(epoch, batch, loss))
-                utils.print_prots(logits, src, tgts, EVAL_MAX_PRINTOUTS)
+                utils.print_prots(logits, src, tgts, hparams.eval_max_printouts)
                 print('EVAL END >>> Epoch {}: Batch {} completed with loss {}'.format(epoch, batch, loss))
 
-            if batch % INFER_PRINT_FREQ == 0:
+            if batch % hparams.infer_print_freq == 0:
                 loaded_train_model.saver.save(train_sess, hparams.model_dir)
                 with infer_model.graph.as_default():
                     loaded_infer_model = model_builder.create_or_load_model(hparams, infer_model.model, infer_sess)
                 infer_sess.run(infer_model.iterator.initializer)
                 src, tgts, logits = loaded_infer_model.infer(infer_sess)
                 print('INFER BEGIN >>> Epoch {}: Batch {} completed'.format(epoch, batch, loss))
-                utils.print_prots(logits, src, tgts, INFER_MAX_PRINTOUTS)
+                utils.print_prots(logits, src, tgts, hparams.infer_max_printouts)
                 print('INFER END >>> Epoch {}: Batch {} completed'.format(epoch, batch, loss))
 
         except tf.errors.OutOfRangeError:

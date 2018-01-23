@@ -24,8 +24,9 @@ def create_train_model(hparams):
     with graph.as_default():
         iterator = data_pipeline.get_batched_iterator(
             hparams,
-            src_loc='primary.csv',
-            tgt_loc='secondary.csv')
+            src_loc=hparams.data_dir + 'primary.csv',
+            tgt_loc=hparams.data_dir + 'secondary.csv',
+            weights_loc=hparams.data_dir + 'weights.csv')
 
         model = models.NMTModel(
             hparams,
@@ -48,8 +49,9 @@ def create_eval_model(hparams):
     with graph.as_default():
         iterator = data_pipeline.get_batched_iterator(
             hparams,
-            src_loc='primary.csv',
-            tgt_loc='secondary.csv')
+            src_loc=hparams.data_dir + 'primary.csv',
+            tgt_loc=hparams.data_dir + 'secondary.csv',
+            weights_loc=hparams.data_dir + 'weights.csv')
 
         model = models.NMTModel(
             hparams,
@@ -72,8 +74,9 @@ def create_infer_model(hparams):
     with graph.as_default():
         iterator = data_pipeline.get_batched_iterator(
             hparams,
-            src_loc='primary.csv',
-            tgt_loc='secondary.csv')
+            src_loc=hparams.data_dir + 'primary.csv',
+            tgt_loc=hparams.data_dir + 'secondary.csv',
+            weights_loc=hparams.data_dir + 'weights.csv')
 
         model = models.NMTModel(
             hparams,

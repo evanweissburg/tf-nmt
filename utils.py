@@ -1,6 +1,7 @@
 import csv
 import os
 import numpy as np
+import shutil
 
 int_to_dssp_letter = {'0': ' ', '1': 'H', '2': 'B', '3': 'E', '4': 'G', '5': 'I', '6': 'T', '7': 'S'}
 dssp_letter_to_int = inv_map = {v: k for k, v in int_to_dssp_letter.items()}
@@ -32,7 +33,7 @@ def integer_to_dssp(integer: int, shift=0):
     return int_to_dssp_letter[str(integer - shift)]
 
 
-def download_raw_data():
+def download_raw_data(data_dir):
     print('ss.txt not found, downloading raw dataset from internet...')
 
     import urllib.request
@@ -40,7 +41,7 @@ def download_raw_data():
 
     import gzip
     with gzip.open('ss.txt.gz', 'rb') as inF:
-        with open('ss.txt', 'wb') as outF:
+        with open(data_dir+'ss.txt', 'wb+') as outF:
             outF.write(inF.read())
 
     import os
@@ -49,16 +50,27 @@ def download_raw_data():
     print('Download complete.')
 
 
-def integerize_raw_data():
-    print('Preprocessed primary and secondary csv files not found, generating...')
+def clear_previous_runs(model_dir, data_dir):
+    shutil.rmtree(model_dir, ignore_errors=True)
+    shutil.rmtree(data_dir, ignore_errors=True)
+    os.mkdir(model_dir)
+    os.mkdir(data_dir)
 
-    if not os.path.isfile('ss.txt'):
-        download_raw_data()
 
-    file = open('ss.txt', 'r')
+def make_dataset(max_len, max_size, data_dir):
+    if not os.path.isfile(data_dir+'ss.txt'):
+        download_raw_data(data_dir)
+
+    print('Generating dataset...')
+
+    file = open(data_dir+'ss.txt', 'r')
     sequences = []
     l_index = 0
-    for line in file:
+    for i, line in enumerate(file):
+        if max_size and i == max_size:
+            break
+        if max_len and len(line)-1 > max_len:
+            continue
         if line.find('sequence') is not -1:
             sequences.append([])
             sequences[-1].append(line[:-1])   # Get rid of line breaks
@@ -79,15 +91,30 @@ def integerize_raw_data():
         primary.append(protein[1])
         secondary.append(protein[3])
 
-    with open('primary.csv', 'w+', newline='') as file:
+    with open(data_dir+'primary.csv', 'w+', newline='') as file:
         writer = csv.writer(file)
         for sequence in primary:
             writer.writerow(fasta_to_integers(sequence, shift=1))
 
-    with open('secondary.csv', 'w+', newline='') as file:
+    def calculate_weights(sec_seq):
+        weights = list()
+        weights.append(1.0)
+        for i in range(1, len(sec_seq)):
+            if sec_seq[i] != sec_seq[i-1]:
+                weights.append(1.0)
+            else:
+                weights.append(0.2)
+        return weights
+
+    with open(data_dir+'secondary.csv', 'w+', newline='') as file:
         writer = csv.writer(file)
         for sequence in secondary:
             writer.writerow(dssp_to_integers(sequence, shift=3))
+
+    with open(data_dir+'weights.csv', 'w+', newline='') as file:
+        writer = csv.writer(file)
+        for sequence in secondary:
+            writer.writerow(calculate_weights(sequence))
 
     print('Data preparation complete! %s proteins prepared.' % len(primary))
 

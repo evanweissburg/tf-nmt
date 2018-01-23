@@ -5,3 +5,5 @@ ss.txt
 __pycache__/
 tsne20.png
 tsne8.png
+weights.csv
+ckpts/
