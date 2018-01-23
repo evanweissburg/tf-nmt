@@ -34,7 +34,7 @@ def integer_to_dssp(integer: int, shift=0):
 
 
 def download_raw_data(data_dir):
-    print('ss.txt not found, downloading raw dataset from internet...')
+    print('Downloading raw dataset from internet...')
 
     import urllib.request
     urllib.request.urlretrieve('https://cdn.rcsb.org/etl/kabschSander/ss.txt.gz', filename='ss.txt.gz')
@@ -57,7 +57,7 @@ def clear_previous_runs(model_dir, data_dir):
     os.mkdir(data_dir)
 
 
-def make_dataset(max_len, max_size, data_dir):
+def make_dataset(max_len, max_size, data_dir, max_weight, delta_weight, min_weight):
     if not os.path.isfile(data_dir+'ss.txt'):
         download_raw_data(data_dir)
 
@@ -96,16 +96,6 @@ def make_dataset(max_len, max_size, data_dir):
         for sequence in primary:
             writer.writerow(fasta_to_integers(sequence, shift=1))
 
-    def calculate_weights(sec_seq):
-        weights = list()
-        weights.append(1.0)
-        for i in range(1, len(sec_seq)):
-            if sec_seq[i] != sec_seq[i-1]:
-                weights.append(1.0)
-            else:
-                weights.append(0.2)
-        return weights
-
     with open(data_dir+'secondary.csv', 'w+', newline='') as file:
         writer = csv.writer(file)
         for sequence in secondary:
@@ -114,7 +104,14 @@ def make_dataset(max_len, max_size, data_dir):
     with open(data_dir+'weights.csv', 'w+', newline='') as file:
         writer = csv.writer(file)
         for sequence in secondary:
-            writer.writerow(calculate_weights(sequence))
+            weights = list()
+            weights.append(1.0)
+            for i in range(1, len(sequence)):
+                if sequence[i] != sequence[i-1]:
+                    weights.append(max_weight)
+                else:
+                    weights.append(max(weights[-1]-delta_weight, min_weight))
+            writer.writerow(weights)
 
     print('Data preparation complete! %s proteins prepared.' % len(primary))
 

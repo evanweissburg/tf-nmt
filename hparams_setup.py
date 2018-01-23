@@ -35,6 +35,9 @@ def get_hparams():
                                           shuffle_buffer_size=10000,
                                           num_buckets=10,                     # 1 for no buckets
                                           max_len=500,                        # Largest is 5037
-                                          dataset_max_size=1000000)
+                                          dataset_max_size=1000000,
+                                          max_weight=1.0,
+                                          delta_weight=1.0,
+                                          min_weight=0.1)
 
     return hparams

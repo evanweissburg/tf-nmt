@@ -12,7 +12,8 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 hparams = hparams_setup.get_hparams()
 utils.clear_previous_runs(model_dir=hparams.model_dir, data_dir=hparams.data_dir)
-utils.make_dataset(max_len=hparams.max_len, max_size=hparams.dataset_max_size, data_dir=hparams.data_dir)
+utils.make_dataset(max_len=hparams.max_len, max_size=hparams.dataset_max_size, data_dir=hparams.data_dir,
+                   max_weight=hparams.max_weight, delta_weight=hparams.delta_weight, min_weight=hparams.min_weight)
 
 train_model = model_builder.create_train_model(hparams)
 eval_model = model_builder.create_eval_model(hparams)
