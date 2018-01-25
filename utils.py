@@ -66,11 +66,7 @@ def make_dataset(max_len, max_size, data_dir, max_weight, delta_weight, min_weig
     file = open(data_dir+'ss.txt', 'r')
     sequences = []
     l_index = 0
-    for i, line in enumerate(file):
-        if max_size and i == max_size:
-            break
-        if max_len and len(line)-1 > max_len:
-            continue
+    for line in file:
         if line.find('sequence') is not -1:
             sequences.append([])
             sequences[-1].append(line[:-1])   # Get rid of line breaks
@@ -86,7 +82,11 @@ def make_dataset(max_len, max_size, data_dir, max_weight, delta_weight, min_weig
     prot_labels = []
     primary = []
     secondary = []
-    for protein in sequences:
+    for i, protein in enumerate(sequences):
+        if max_size and i == max_size:
+            break
+        if max_len and len(protein[3]) > max_len:
+            continue
         prot_labels.append(protein[0][1:7])
         primary.append(protein[1])
         secondary.append(protein[3])

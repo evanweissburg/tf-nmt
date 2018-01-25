@@ -1,5 +1,10 @@
 import tensorflow as tf
 
+# Working HParams:
+# num_units < ?, batch_size < 500, attention = True, max_len = 500
+# num_units = 50, batch_size = 100, attention = True, max_len = 500 (verified)
+# num_units = 100, batch_size = 100, attention = True, max_len = 500
+
 
 def get_hparams():
     PROJECT_DIR = '/home/nave01314/IdeaProjects/tf-nmt/'
@@ -9,14 +14,14 @@ def get_hparams():
 
                                           train_print_freq=10,
                                           eval_print_freq=100,
-                                          infer_print_freq=100,
-                                          eval_max_printouts=100,
-                                          infer_max_printouts=100,
+                                          infer_print_freq=500,
+                                          eval_max_printouts=5,
+                                          infer_max_printouts=10,
 
                                           epochs=2000,
                                           l_rate=0.001,
-                                          num_units=10,
-                                          batch_size=15,
+                                          num_units=100,
+                                          batch_size=300,
                                           max_gradient_norm=5.0,
                                           attention=True,
 

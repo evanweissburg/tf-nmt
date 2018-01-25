@@ -24,7 +24,7 @@ class NMTModel:
         if hparams.attention:
             attention_mechanism = tf.contrib.seq2seq.LuongAttention(hparams.num_units, encoder_outputs, memory_sequence_length=source_lengths)
             decoder_cell = tf.contrib.seq2seq.AttentionWrapper(decoder_cell, attention_mechanism, attention_layer_size=hparams.num_units)
-            decoder_initial_state = decoder_cell.zero_state(hparams.batch_size, tf.float32).clone(cell_state=encoder_state)
+            decoder_initial_state = decoder_cell.zero_state(true_batch_size, tf.float32).clone(cell_state=encoder_state)
         else:
             decoder_initial_state = encoder_state
 
