@@ -50,20 +50,25 @@ def download_raw_data(data_dir):
     print('Download complete.')
 
 
-def clear_previous_runs(model_dir, data_dir):
-    shutil.rmtree(model_dir, ignore_errors=True)
-    shutil.rmtree(data_dir, ignore_errors=True)
-    os.mkdir(model_dir)
-    os.mkdir(data_dir)
+def clear_previous_runs(model_dir, data_dir, log_dir):
+    if model_dir:
+        shutil.rmtree(model_dir, ignore_errors=True)
+        os.mkdir(model_dir)
+    if data_dir:
+        shutil.rmtree(data_dir, ignore_errors=True)
+        os.mkdir(data_dir)
+    if log_dir:
+        shutil.rmtree(log_dir, ignore_errors=True)
+        os.mkdir(log_dir)
 
 
 def make_dataset(max_len, max_size, data_dir, max_weight, delta_weight, min_weight):
-    if not os.path.isfile(data_dir+'ss.txt'):
+    if not os.path.isfile(os.path.join(data_dir, 'ss.txt')):
         download_raw_data(data_dir)
 
     print('Generating dataset...')
 
-    file = open(data_dir+'ss.txt', 'r')
+    file = open(os.path.join(data_dir, 'ss.txt'), 'r')
     sequences = []
     l_index = 0
     for line in file:
@@ -124,3 +129,18 @@ def get_data_stats():
             maxi = max(maxi, len(row))
             print(len(row))
     return maxi
+
+
+def percent_infer_accuracy(preds, targets):
+    correct = 0
+    total = 0
+    for i in range(len(preds)):
+        pred = preds[i]
+        target = targets[i]
+        for j in range(len(pred)):
+            if target[j] == 0:
+                break
+            total += 1
+            if pred[j] == target[j]:
+                correct += 1
+    return correct/total

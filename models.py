@@ -5,6 +5,7 @@ from tensorflow.python.layers import core as layers_core
 class NMTModel:
     def __init__(self, hparams, iterator, mode):
         tf.set_random_seed(hparams.graph_seed)
+
         source, target_in, target_out, weights, source_lengths, target_lengths = iterator.get_next()
         true_batch_size = tf.size(source_lengths)
 
@@ -22,28 +23,65 @@ class NMTModel:
         decoder_cell = tf.nn.rnn_cell.BasicLSTMCell(hparams.num_units)
 
         if hparams.attention:
-            attention_mechanism = tf.contrib.seq2seq.LuongAttention(hparams.num_units, encoder_outputs, memory_sequence_length=source_lengths)
-            decoder_cell = tf.contrib.seq2seq.AttentionWrapper(decoder_cell, attention_mechanism, attention_layer_size=hparams.num_units)
-            decoder_initial_state = decoder_cell.zero_state(true_batch_size, tf.float32).clone(cell_state=encoder_state)
+            if mode is 'INFER' and hparams.beam_search:
+                encoder_outputs = tf.contrib.seq2seq.tile_batch(encoder_outputs, multiplier=hparams.beam_width)
+                source_lengths = tf.contrib.seq2seq.tile_batch(source_lengths, multiplier=hparams.beam_width)
+                encoder_state = tf.contrib.seq2seq.tile_batch(encoder_state, multiplier=hparams.beam_width)
+                batch_size = true_batch_size * hparams.beam_width
+            else:
+                batch_size = true_batch_size
+            attention_mechanism = tf.contrib.seq2seq.LuongAttention(num_units=hparams.num_units,
+                                                                    memory=encoder_outputs,
+                                                                    memory_sequence_length=source_lengths,
+                                                                    scale=True)
+            decoder_cell = tf.contrib.seq2seq.AttentionWrapper(cell=decoder_cell,
+                                                               attention_mechanism=attention_mechanism,
+                                                               attention_layer_size=hparams.num_units)
+            decoder_initial_state = decoder_cell.zero_state(batch_size, tf.float32).clone(cell_state=encoder_state)
         else:
             decoder_initial_state = encoder_state
 
-        # Add Helper and ProjectionLayer and run Decoder LSTM
-        projection_layer = layers_core.Dense(hparams.tgt_vsize, use_bias=False)
-        if mode is 'TRAIN' or mode is 'EVAL':  # then decode using TrainingHelper
-            helper = tf.contrib.seq2seq.TrainingHelper(decoder_emb_inp, sequence_length=target_lengths)
-        elif mode is 'INFER':  # then decode using Beam Search
-            helper = tf.contrib.seq2seq.GreedyEmbeddingHelper(embedding_decoder, tf.fill([true_batch_size], hparams.sos), hparams.eos)
-        decoder = tf.contrib.seq2seq.BasicDecoder(decoder_cell, helper, decoder_initial_state, output_layer=projection_layer)
-        outputs, _, self.test = tf.contrib.seq2seq.dynamic_decode(decoder, maximum_iterations=tf.reduce_max(target_lengths))
-        logits = outputs.rnn_output
+        # Add Helper (if needed) and ProjectionLayer and run Decoder LSTM
+        projection_layer = layers_core.Dense(units=hparams.tgt_vsize, use_bias=False)
 
-        if mode is 'TRAIN' or mode is 'EVAL':  # then calculate loss
+        if mode is 'TRAIN' or mode is 'EVAL':
+            helper = tf.contrib.seq2seq.TrainingHelper(inputs=decoder_emb_inp,
+                                                       sequence_length=target_lengths)
+        elif mode is 'INFER' and not hparams.beam_search:
+            helper = tf.contrib.seq2seq.GreedyEmbeddingHelper(embedding=embedding_decoder,
+                                                              start_tokens=tf.fill([true_batch_size], hparams.sos),
+                                                              end_token=hparams.eos)
+
+        if mode is 'TRAIN' or mode is 'EVAL' or (mode is 'INFER' and not hparams.beam_search):
+            decoder = tf.contrib.seq2seq.BasicDecoder(cell=decoder_cell,
+                                                      helper=helper,
+                                                      initial_state=decoder_initial_state,
+                                                      output_layer=projection_layer)
+
+        elif mode is 'INFER' and hparams.beam_search:
+            decoder = tf.contrib.seq2seq.BeamSearchDecoder(cell=decoder_cell,
+                                                           embedding=embedding_decoder,
+                                                           start_tokens=tf.fill([true_batch_size], hparams.sos),
+                                                           end_token=hparams.eos,
+                                                           initial_state=decoder_initial_state,
+                                                           beam_width=hparams.beam_width,
+                                                           output_layer=projection_layer,
+                                                           length_penalty_weight=hparams.length_penalty_weight)
+
+        outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder, maximum_iterations=tf.reduce_max(target_lengths))
+        logits = outputs.rnn_output if mode is not 'INFER' or not hparams.beam_search else tf.no_op()
+        ids = outputs.sample_id if mode is not 'INFER' or not hparams.beam_search else outputs.predicted_ids
+
+        # Calculate loss
+        if mode is 'TRAIN' or mode is 'EVAL':
             crossent = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=target_out, logits=logits)
             target_weights = tf.sequence_mask(target_lengths, maxlen=tf.shape(target_out)[1], dtype=logits.dtype)
-            self.loss = tf.reduce_sum((crossent * target_weights * weights)) / tf.cast(true_batch_size, tf.float32)
+            masked_loss = crossent * target_weights * weights
+            self.loss = tf.reduce_sum(masked_loss) / tf.cast(true_batch_size, tf.float32)
+            self.char_loss = tf.reduce_sum(tf.reduce_sum(masked_loss, axis=1) / tf.cast(target_lengths, tf.float32)) / tf.cast(true_batch_size, tf.float32)
 
-        if mode is 'TRAIN':  # then calculate/clip gradients, then optimize model
+        # Calculate/clip gradients, then optimize model
+        if mode is 'TRAIN':
             params = tf.trainable_variables()
             gradients = tf.gradients(self.loss, params)
             clipped_gradients, _ = tf.clip_by_global_norm(gradients, hparams.max_gradient_norm)
@@ -51,20 +89,21 @@ class NMTModel:
             optimizer = tf.train.AdamOptimizer(hparams.l_rate)
             self.update_step = optimizer.apply_gradients(zip(clipped_gradients, params))
 
-        if mode is 'EVAL' or mode is 'INFER':  # then allow access to input/output tensors to printout
+        # Allow access to input/output tensors to printout
+        if mode is 'EVAL' or mode is 'INFER':
             self.src = source
             self.tgt = target_out
-            self.preds = tf.argmax(logits, axis=2)
+            self.ids = ids
 
-        # Designate a saver operation
         self.saver = tf.train.Saver(tf.global_variables())
 
     def train(self, sess):
-        return sess.run([self.update_step, self.loss])
+        return sess.run([self.update_step, self.char_loss])
 
     def eval(self, sess):
-        return sess.run([self.loss, self.src, self.tgt, self.preds])
+        return sess.run([self.char_loss, self.src, self.tgt, self.ids])
 
     def infer(self, sess):
-        return sess.run([self.src, self.tgt, self.preds])  # tgt should not exist (temporary debugging only)
+        return sess.run([self.src, self.tgt, self.ids])
+
 

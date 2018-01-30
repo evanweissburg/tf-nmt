@@ -1,4 +1,5 @@
 import tensorflow as tf
+import os
 
 # Working HParams:
 # num_units < ?, batch_size < 500, attention = True, max_len = 500
@@ -7,14 +8,15 @@ import tensorflow as tf
 
 
 def get_hparams():
-    PROJECT_DIR = '/home/nave01314/IdeaProjects/tf-nmt/'
+    project_dir = '/home/nave01314/IdeaProjects/tf-nmt/'
 
-    hparams = tf.contrib.training.HParams(model_dir=PROJECT_DIR+'ckpts/',
-                                          data_dir=PROJECT_DIR+'data/',
+    hparams = tf.contrib.training.HParams(model_dir=os.path.join(project_dir, 'ckpts/'),
+                                          data_dir=os.path.join(project_dir, 'data/'),
+                                          log_dir=os.path.join(project_dir, 'logs/'),
 
-                                          train_print_freq=10,
-                                          eval_print_freq=100,
-                                          infer_print_freq=500,
+                                          train_log_freq=10,
+                                          eval_log_freq=100,
+                                          infer_log_freq=10,
                                           eval_max_printouts=5,
                                           infer_max_printouts=10,
 
@@ -24,6 +26,9 @@ def get_hparams():
                                           batch_size=300,
                                           max_gradient_norm=5.0,
                                           attention=True,
+                                          beam_search=True,
+                                          beam_width=5,                       # Num top K preds to keep at timestep
+                                          length_penalty_weight=0.0,          # Penalize length (disabled with 0.0)
 
                                           src_vsize=27,                       # A-Z + pad
                                           tgt_vsize=11,                       # 8 + pad + sos + eos
@@ -42,7 +47,7 @@ def get_hparams():
                                           max_len=500,                        # Largest is 5037
                                           dataset_max_size=1000000,
                                           max_weight=1.0,
-                                          delta_weight=1.0,
+                                          delta_weight=0.1,
                                           min_weight=0.1)
 
     return hparams
