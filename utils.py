@@ -2,6 +2,7 @@ import csv
 import os
 import numpy as np
 import shutil
+from difflib import SequenceMatcher
 
 int_to_dssp_letter = {'0': ' ', '1': 'H', '2': 'B', '3': 'E', '4': 'G', '5': 'I', '6': 'T', '7': 'S'}
 dssp_letter_to_int = inv_map = {v: k for k, v in int_to_dssp_letter.items()}
@@ -144,3 +145,18 @@ def percent_infer_accuracy(preds, targets):
             if pred[j] == target[j]:
                 correct += 1
     return correct/total
+
+
+def lib_percent_infer_accuracy(preds, targets):
+    avg_ratio = 0
+    for i in range(len(preds)):
+        end = len(targets[i])
+        for j, num in enumerate(targets[i]):
+            if num == 0:
+                end = j
+                break
+        pred = preds[i][:end]
+        target = targets[i][:end]
+        ratio = SequenceMatcher(None, pred, target).ratio()
+        avg_ratio += ratio
+    return avg_ratio/len(preds)

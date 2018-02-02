@@ -1,7 +1,9 @@
 import tensorflow as tf
-import data_pipeline
-import models
 import collections
+
+import data_pipeline
+from model import NMTModel
+
 
 
 def create_or_load_model(hparams, model, sess):
@@ -28,7 +30,7 @@ def create_train_model(hparams):
             tgt_loc=hparams.data_dir + 'secondary.csv',
             weights_loc=hparams.data_dir + 'weights.csv')
 
-        model = models.NMTModel(
+        model = NMTModel(
             hparams,
             iterator=iterator,
             mode='TRAIN')
@@ -53,7 +55,7 @@ def create_eval_model(hparams):
             tgt_loc=hparams.data_dir + 'secondary.csv',
             weights_loc=hparams.data_dir + 'weights.csv')
 
-        model = models.NMTModel(
+        model = NMTModel(
             hparams,
             iterator=iterator,
             mode='EVAL')
@@ -78,7 +80,7 @@ def create_infer_model(hparams):
             tgt_loc=hparams.data_dir + 'secondary.csv',
             weights_loc=hparams.data_dir + 'weights.csv')
 
-        model = models.NMTModel(
+        model = NMTModel(
             hparams,
             iterator=iterator,
             mode='INFER')
