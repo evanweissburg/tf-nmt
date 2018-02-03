@@ -1,6 +1,4 @@
 import tensorflow as tf
-import os
-import utils
 
 
 def get_batched_iterator(hparams, src_loc, tgt_loc, weights_loc):
@@ -8,7 +6,7 @@ def get_batched_iterator(hparams, src_loc, tgt_loc, weights_loc):
     target_dataset = tf.data.TextLineDataset(tgt_loc)
     weights_dataset = tf.data.TextLineDataset(weights_loc)
     dataset = tf.data.Dataset.zip((source_dataset, target_dataset, weights_dataset))
-    dataset = dataset.shuffle(hparams.shuffle_buffer_size)
+    dataset = dataset.shuffle(hparams.shuffle_buffer_size, hparams.shuffle_seed, reshuffle_each_iteration=True)
 
     dataset = dataset.map(lambda source, target, weights:
                           (tf.string_to_number(tf.string_split([source], delimiter=',').values, tf.int32),

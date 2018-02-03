@@ -5,7 +5,6 @@ import data_pipeline
 from model import NMTModel
 
 
-
 def create_or_load_model(hparams, model, sess):
     latest_ckpt = tf.train.latest_checkpoint(hparams.model_dir)
     if latest_ckpt:
@@ -13,7 +12,8 @@ def create_or_load_model(hparams, model, sess):
     else:
         sess.run(tf.global_variables_initializer())
 
-    return model
+    global_step = model.global_step.eval(session=sess)
+    return model, global_step
 
 
 class TrainModel(collections.namedtuple("TrainModel", ("graph", "model", "iterator"))):

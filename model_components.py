@@ -119,7 +119,7 @@ def calculate_loss(logits, target_out, target_lengths, key_weights, batch_size):
     return loss, char_loss
 
 
-def optimize_model(hparams, loss):
+def optimize_model(hparams, loss, global_step):
     """Calculate gradients, clip gradients, apply gradients.
     :return: update_step"""
 
@@ -128,7 +128,7 @@ def optimize_model(hparams, loss):
     clipped_gradients, _ = tf.clip_by_global_norm(gradients, hparams.max_gradient_norm)
 
     optimizer = tf.train.AdamOptimizer(hparams.l_rate)
-    update_step = optimizer.apply_gradients(zip(clipped_gradients, params))
+    update_step = optimizer.apply_gradients(zip(clipped_gradients, params), global_step=global_step)
 
     return update_step
 
