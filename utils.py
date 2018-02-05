@@ -157,7 +157,7 @@ def percent_infer_accuracy(preds, targets):
         pred = preds[i]
         target = targets[i]
         for j in range(len(pred)):
-            if target[j] == 0:
+            if target[j] == 1:  # /s is the second (index 1) vocab word in secondary_vocab.txt
                 break
             total += 1
             if pred[j] == target[j]:
