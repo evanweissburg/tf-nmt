@@ -1,54 +1,31 @@
 import csv
 import os
-import numpy as np
 import shutil
-from difflib import SequenceMatcher
+import urllib.request
+import gzip
 
 int_to_dssp_letter = {'0': ' ', '1': 'H', '2': 'B', '3': 'E', '4': 'G', '5': 'I', '6': 'T', '7': 'S'}
 dssp_letter_to_int = inv_map = {v: k for k, v in int_to_dssp_letter.items()}
 
 
-def print_prots(preds, src, tgts=None, max_prints=None):
+def print_example(preds, src, tgts=None, max_prints=None):
     count = min(max_prints, len(preds)) if max_prints else len(preds)
     for i in range(count):
         frmt = '{:>3}'*len(preds[i])
         print('>>> START PROTEIN <<<')
-        print('Target     :' + frmt.format(*tgts[i]))
+        if tgts is not None:
+            print('Target     :' + frmt.format(*tgts[i]))
         print('Prediction :' + frmt.format(*preds[i]))
-        print('Source     :' + frmt.format(*np.insert(src[i], list(src[i]).index(0), [-1]) if src[i][-1] == 0 else np.append(src[i], [-1])))
+        print('Source     :' + frmt.format(*src[i]))
 
 
-def fasta_to_integers(protein: str, shift=0):
-    return list(map(lambda x: ord(x) - 65 + shift, protein))
-
-
-def integer_to_fasta(integer: int, shift=0):
-    return chr(integer + 65 - shift)
-
-
-def dssp_to_integers(protein: str, shift=0):
-    return list(map(lambda x: int(dssp_letter_to_int[x]) + shift, protein))
-
-
-def integer_to_dssp(integer: int, shift=0):
-    return int_to_dssp_letter[str(integer - shift)]
-
-
-def download_raw_data(data_dir):
-    print('Downloading raw dataset from internet...')
-
-    import urllib.request
-    urllib.request.urlretrieve('https://cdn.rcsb.org/etl/kabschSander/ss.txt.gz', filename='ss.txt.gz')
-
-    import gzip
-    with gzip.open('ss.txt.gz', 'rb') as inF:
-        with open(data_dir+'ss.txt', 'wb+') as outF:
-            outF.write(inF.read())
-
-    import os
-    os.remove('ss.txt.gz')
-
-    print('Download complete.')
+def get_inference_input():
+    user_in = input('Enter a protein (FASTA only): ')
+    src = ''
+    for ch in user_in:
+        src = src + ch + ','
+    src = src[:-1]
+    return src
 
 
 def clear_previous_runs(model_dir, data_dir, log_dir):
@@ -63,49 +40,54 @@ def clear_previous_runs(model_dir, data_dir, log_dir):
         os.mkdir(log_dir)
 
 
-def make_dataset(max_len, max_size, data_dir, max_weight, delta_weight, min_weight):
-    if not os.path.isfile(os.path.join(data_dir, 'ss.txt')):
-        download_raw_data(data_dir)
+def download_raw_data(data_dir):
+    urllib.request.urlretrieve('https://cdn.rcsb.org/etl/kabschSander/ss.txt.gz', filename='ss.txt.gz')
 
-    print('Generating dataset...')
+    with gzip.open('ss.txt.gz', 'rb') as inF:
+        with open(data_dir+'ss.txt', 'wb+') as outF:
+            outF.write(inF.read())
 
-    file = open(os.path.join(data_dir, 'ss.txt'), 'r')
-    sequences = []
-    l_index = 0
-    for line in file:
-        if line.find('sequence') is not -1:
-            sequences.append([])
-            sequences[-1].append(line[:-1])   # Get rid of line breaks
-            sequences[-1].append('')
-            l_index = 1
-        elif line.find('secstr') is not -1:
-            sequences[-1].append(line[:-1])
-            sequences[-1].append('')
-            l_index = 3
-        else:
-            sequences[-1][l_index] = sequences[-1][l_index] + (line[:-1])
+    os.remove('ss.txt.gz')
 
-    prot_labels = []
-    primary = []
-    secondary = []
-    for i, protein in enumerate(sequences):
-        if max_size and i == max_size:
-            break
-        if max_len and len(protein[3]) > max_len:
-            continue
-        prot_labels.append(protein[0][1:7])
-        primary.append(protein[1])
-        secondary.append(protein[3])
+
+def split_primary_secondary(data_dir, max_size, max_len, max_weight, delta_weight, min_weight):
+    with open(os.path.join(data_dir, 'ss.txt')) as file:
+        sequences = []
+        l_index = 0
+        for line in file:
+            if line.find('sequence') is not -1:
+                sequences.append([])
+                sequences[-1].append(line[:-1])   # Get rid of line breaks
+                sequences[-1].append('')
+                l_index = 1
+            elif line.find('secstr') is not -1:
+                sequences[-1].append(line[:-1])
+                sequences[-1].append('')
+                l_index = 3
+            else:
+                sequences[-1][l_index] += line[:-1]
+
+        prot_labels = []
+        primary = []
+        secondary = []
+        for i, protein in enumerate(sequences):
+            if max_size and i == max_size:
+                break
+            if max_len and len(protein[3]) > max_len:
+                continue
+            prot_labels.append(protein[0][1:7])
+            primary.append(protein[1])
+            secondary.append(protein[3])
 
     with open(data_dir+'primary.csv', 'w+', newline='') as file:
         writer = csv.writer(file)
         for sequence in primary:
-            writer.writerow(fasta_to_integers(sequence, shift=1))
+            writer.writerow(sequence)
 
     with open(data_dir+'secondary.csv', 'w+', newline='') as file:
         writer = csv.writer(file)
         for sequence in secondary:
-            writer.writerow(dssp_to_integers(sequence, shift=3))
+            writer.writerow(sequence)
 
     with open(data_dir+'weights.csv', 'w+', newline='') as file:
         writer = csv.writer(file)
@@ -119,17 +101,53 @@ def make_dataset(max_len, max_size, data_dir, max_weight, delta_weight, min_weig
                     weights.append(max(weights[-1]-delta_weight, min_weight))
             writer.writerow(weights)
 
-    print('Data preparation complete! %s proteins prepared.' % len(primary))
 
-
-def get_data_stats():
-    with open('primary.csv', 'r+') as file:
-        reader = csv.reader(file, delimiter=',')
-        maxi = 0
+def make_vocab_files(data_dir, src_eos, tgt_sos, tgt_eos):
+    primary = list()
+    with open(data_dir+'primary.csv', 'r+') as file:
+        reader = csv.reader(file)
         for row in reader:
-            maxi = max(maxi, len(row))
-            print(len(row))
-    return maxi
+            for char in row:
+                if char not in primary:
+                    primary.append(char)
+
+    with open(data_dir+'primary_vocab.txt', 'w+', newline='') as file:
+        file.write(src_eos + '\n')
+        for char in primary:
+            file.write(char + '\n')
+
+    secondary = list()
+    with open(data_dir+'secondary.csv', 'r+') as file:
+        reader = csv.reader(file)
+        for row in reader:
+            for char in row:
+                if char not in secondary:
+                    secondary.append(char)
+
+    with open(data_dir+'secondary_vocab.txt', 'w+', newline='') as file:
+        file.write(tgt_sos + '\n')
+        file.write(tgt_eos + '\n')
+        for char in secondary:
+            file.write(char + '\n')
+
+
+def prep_nmt_dataset(hparams):
+    print('Downloading raw data text file.')
+
+    download_raw_data(data_dir=hparams.data_dir)
+
+    print('Generating dataset.')
+
+    split_primary_secondary(data_dir=hparams.data_dir, max_size=hparams.dataset_max_size, max_len=hparams.max_len,
+                            max_weight=hparams.max_weight, delta_weight=hparams.delta_weight,
+                            min_weight=hparams.min_weight)
+
+    print('Data split complete, generating vocab files.')
+
+    make_vocab_files(data_dir=hparams.data_dir, src_eos=hparams.src_eos,
+                     tgt_sos=hparams.tgt_sos, tgt_eos=hparams.tgt_eos)
+
+    print('Vocab generation complete.')
 
 
 def percent_infer_accuracy(preds, targets):
@@ -145,18 +163,3 @@ def percent_infer_accuracy(preds, targets):
             if pred[j] == target[j]:
                 correct += 1
     return correct/total
-
-
-def lib_percent_infer_accuracy(preds, targets):
-    avg_ratio = 0
-    for i in range(len(preds)):
-        end = len(targets[i])
-        for j, num in enumerate(targets[i]):
-            if num == 0:
-                end = j
-                break
-        pred = preds[i][:end]
-        target = targets[i][:end]
-        ratio = SequenceMatcher(None, pred, target).ratio()
-        avg_ratio += ratio
-    return avg_ratio/len(preds)

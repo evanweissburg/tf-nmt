@@ -22,20 +22,19 @@ def get_hparams():
                                           max_gradient_norm=5.0,
                                           attention=True,
                                           beam_search=True,
-                                          beam_width=10,                       # Num top K preds to keep at timestep
+                                          beam_width=10,                      # Num top K preds to keep at timestep
                                           length_penalty_weight=0.0,          # Penalize length (disabled with 0.0)
                                           bidir_encoder=True,
                                           num_layers=2,                       # Must be even if bidirectional is enabled
 
-                                          src_vsize=27,                       # A-Z + pad
-                                          tgt_vsize=11,                       # 8 + pad + sos + eos
+                                          src_vsize=24,                       # FASTA + eos - only used for embedding
+                                          tgt_vsize=10,                       # 8 + sos + eos - only used for embedding
                                           src_emsize=15,
                                           tgt_emsize=10,
 
-                                          sos=1,
-                                          eos=2,
-                                          src_pad=0,
-                                          tgt_pad=0,
+                                          src_eos='/s',                     # Also used for padding
+                                          tgt_sos='s',
+                                          tgt_eos='/s',                     # Also used for padding
 
                                           graph_seed=0,
                                           shuffle_seed=0,

@@ -11,17 +11,18 @@ np.set_printoptions(linewidth=10000, threshold=1000000000)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 hparams = hparams_setup.get_hparams()
-utils.clear_previous_runs(model_dir=hparams.model_dir, data_dir=None, log_dir=hparams.log_dir)
-#utils.make_dataset(max_len=hparams.max_len, max_size=hparams.dataset_max_size, data_dir=hparams.data_dir,
-                   #max_weight=hparams.max_weight, delta_weight=hparams.delta_weight, min_weight=hparams.min_weight)
+utils.clear_previous_runs(data_dir=hparams.data_dir, model_dir=None, log_dir=None)
+utils.prep_nmt_dataset(hparams)
 
 train_model = model_builder.create_train_model(hparams)
 eval_model = model_builder.create_eval_model(hparams)
 infer_model = model_builder.create_infer_model(hparams)
+pred_model = model_builder.create_pred_model(hparams)
 
 train_sess = tf.Session(graph=train_model.graph)
 eval_sess = tf.Session(graph=eval_model.graph)
 infer_sess = tf.Session(graph=infer_model.graph)
+pred_sess = tf.Session(graph=pred_model.graph)
 
 
 def train_log(global_step):
@@ -40,7 +41,7 @@ def eval_step_log():
     eval_sess.run(eval_model.iterator.initializer)
     loss, src, tgts, ids = loaded_eval_model.eval(eval_sess)
 
-    utils.print_prots(ids, src, tgts, hparams.eval_max_printouts)
+    utils.print_example(ids, src, tgts, hparams.eval_max_printouts)
     print('EVAL STEP >>> @ Train Step {}: Completed with loss {}'.format(global_step, loss))
 
     summary_writer = tf.summary.FileWriter(os.path.join(hparams.log_dir, 'eval'), eval_model.graph)
@@ -58,9 +59,9 @@ def infer_step_log():
     if hparams.beam_search:
         ids = ids.transpose([2, 0, 1])   # Change from [batch_size, time_steps, beam_width] to [beam_width, batch_size, time_steps]
         ids = ids[0]  # Only use top 1 prediction from top K
-    accuracy = np.round(utils.lib_percent_infer_accuracy(preds=ids, targets=tgts), 4) * 100
+    accuracy = np.round(utils.percent_infer_accuracy(preds=ids, targets=tgts), 4) * 100
 
-    utils.print_prots(ids, src, tgts, hparams.infer_max_printouts)
+    utils.print_example(ids, src, tgts, hparams.infer_max_printouts)
     print('INFER STEP >>> @ Train Step {}: Completed with {}% correct'.format(global_step, accuracy))
 
     summary_writer = tf.summary.FileWriter(os.path.join(hparams.log_dir, 'infer'), infer_model.graph)
@@ -72,6 +73,7 @@ def infer_step_log():
 with train_model.graph.as_default():
     loaded_train_model, global_step = model_builder.create_or_load_model(hparams, train_model.model, train_sess)
 
+print('MODE >>> Training ({} out of {} steps)'.format(global_step, hparams.num_train_steps))
 epoch = 0
 train_sess.run(train_model.iterator.initializer)
 while global_step < hparams.num_train_steps:
@@ -90,8 +92,26 @@ while global_step < hparams.num_train_steps:
             infer_step_log()
 
     except tf.errors.OutOfRangeError:
-        print('Epoch {} completed.')
+        print('Epoch {} completed.'.format(epoch))
         train_sess.run(train_model.iterator.initializer)
         epoch += 1
-        break
 
+print()
+print('MODE >>> Prediction')
+
+while True:
+    src = utils.get_inference_input()
+
+    with pred_sess as sess:
+        with pred_model.graph.as_default():
+            loaded_pred_model, _ = model_builder.create_or_load_model(hparams, pred_model.model, sess)
+
+        sess.run(pred_model.iterator.initializer, feed_dict={pred_model.src_placeholder: [src]})
+        ids = loaded_pred_model.pred(pred_sess)
+        if hparams.beam_search:
+            ids = ids.transpose([2, 0, 1])   # Change from [batch_size, time_steps, beam_width] to [beam_width, batch_size, time_steps]
+            ids = ids[0]  # Only use top 1 prediction from top K
+        src = src.split(',')+['-1']
+
+        utils.print_example(ids, [src])
+        print()

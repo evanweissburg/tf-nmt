@@ -7,3 +7,5 @@ tsne20.png
 tsne8.png
 weights.csv
 ckpts/
+data/
+logs/
