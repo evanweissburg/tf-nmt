@@ -29,16 +29,12 @@ def get_inference_input():
     return src
 
 
-def clear_previous_runs(model_dir, data_dir, log_dir):
-    if model_dir:
-        shutil.rmtree(model_dir, ignore_errors=True)
-        os.mkdir(model_dir)
-    if data_dir:
-        shutil.rmtree(data_dir, ignore_errors=True)
-        os.mkdir(data_dir)
-    if log_dir:
-        shutil.rmtree(log_dir, ignore_errors=True)
-        os.mkdir(log_dir)
+def clear_previous_run(hparams):
+    print('Clearing previous data and log files.')
+    shutil.rmtree(hparams.model_dir, ignore_errors=True)
+    os.mkdir(hparams.model_dir)
+    shutil.rmtree(hparams.log_dir, ignore_errors=True)
+    os.mkdir(hparams.log_dir)
 
 
 def download_raw_data(data_dir):
@@ -133,6 +129,11 @@ def make_vocab_files(data_dir, src_eos, tgt_sos, tgt_eos):
 
 
 def prep_nmt_dataset(hparams):
+    print('Clearing previous data directory.')
+
+    shutil.rmtree(hparams.data_dir, ignore_errors=True)
+    os.mkdir(hparams.data_dir)
+
     print('Downloading raw data text file.')
 
     download_raw_data(data_dir=hparams.data_dir)
@@ -171,7 +172,7 @@ def lib_percent_infer_accuracy(preds, targets):
     for i in range(len(preds)):
         end = len(targets[i])
         for j, num in enumerate(targets[i]):
-            if num == 0:
+            if num == 1:
                 end = j
                 break
         pred = preds[i][:end]

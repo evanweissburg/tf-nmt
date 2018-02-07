@@ -11,8 +11,8 @@ np.set_printoptions(linewidth=10000, threshold=1000000000)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 hparams = hparams_setup.get_hparams()
-utils.clear_previous_runs(data_dir=hparams.data_dir, model_dir=None, log_dir=None)
-utils.prep_nmt_dataset(hparams)
+#utils.clear_previous_run(hparams)
+#utils.prep_nmt_dataset(hparams)
 
 train_model = model_builder.create_train_model(hparams)
 eval_model = model_builder.create_eval_model(hparams)
