@@ -59,7 +59,7 @@ def infer_step_log():
     if hparams.beam_search:
         ids = ids.transpose([2, 0, 1])   # Change from [batch_size, time_steps, beam_width] to [beam_width, batch_size, time_steps]
         ids = ids[0]  # Only use top 1 prediction from top K
-    accuracy = np.round(utils.percent_infer_accuracy(preds=ids, targets=tgts), 4) * 100
+    accuracy = np.round(utils.lib_percent_infer_accuracy(preds=ids, targets=tgts), 4) * 100
 
     utils.print_example(ids, src, tgts, hparams.infer_max_printouts)
     print('INFER STEP >>> @ Train Step {}: Completed with {}% correct'.format(global_step, accuracy))
