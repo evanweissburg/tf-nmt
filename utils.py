@@ -3,6 +3,7 @@ import os
 import shutil
 import urllib.request
 import gzip
+import numpy as np
 
 int_to_dssp_letter = {'0': ' ', '1': 'H', '2': 'B', '3': 'E', '4': 'G', '5': 'I', '6': 'T', '7': 'S'}
 dssp_letter_to_int = inv_map = {v: k for k, v in int_to_dssp_letter.items()}
@@ -163,3 +164,34 @@ def percent_infer_accuracy(preds, targets):
             if pred[j] == target[j]:
                 correct += 1
     return correct/total
+
+
+def update_standard_deviation(old_total, old_squaresum, n, point):
+    total = old_total + point
+    squaresum = old_squaresum + (point ** 2)
+    stdev = np.sqrt((squaresum / n) - ((total / n) ** 2))
+    return total, squaresum, stdev
+
+
+def print_common_mistake(preds, src, tgts=None):
+    mistakes = []
+    mistake_freq = []
+    for i in range(len(preds)):
+        for j in range(len(preds[i])):
+            if tgts[i][j] != src[i][j]:
+                if not src[i][j] in mistakes:
+                    mistakes.append(src[i][j])
+                    mistake_freq.append(1)
+                else:
+                    mistake_freq[mistakes.index(src[i][j])] += 1
+    max = 0
+    first = 0
+    second = 0
+    third = 0
+    for k in range(len(mistakes)):
+        if mistake_freq[k] > max:
+            max = mistake_freq[k]
+            third = second
+            second = first
+            first = mistakes[k]
+    print('Most common sources of error: {}, {}, {}'.format(first, second, third))
