@@ -11,8 +11,8 @@ np.set_printoptions(linewidth=10000, threshold=1000000000)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 hparams = hparams_setup.get_hparams()
-utils.clear_previous_runs(data_dir=hparams.data_dir, model_dir=None, log_dir=None)
-utils.prep_nmt_dataset(hparams)
+#utils.clear_previous_run(hparams)
+#utils.prep_nmt_dataset(hparams)
 
 train_model = model_builder.create_train_model(hparams)
 eval_model = model_builder.create_eval_model(hparams)
@@ -60,7 +60,7 @@ def infer_step_log():
     if hparams.beam_search:
         ids = ids.transpose([2, 0, 1])   # Change from [batch_size, time_steps, beam_width] to [beam_width, batch_size, time_steps]
         ids = ids[0]  # Only use top 1 prediction from top K
-    accuracy = np.round(utils.percent_infer_accuracy(preds=ids, targets=tgts), 4) * 100
+    accuracy = np.round(utils.lib_percent_infer_accuracy(preds=ids, targets=tgts), 4) * 100
 
     utils.print_example(ids, src, tgts, hparams.infer_max_printouts)
     print('INFER STEP >>> @ Train Step {}: Completed with {}% correct'.format(global_step, accuracy))

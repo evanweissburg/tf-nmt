@@ -3,7 +3,7 @@ import os
 import shutil
 import urllib.request
 import gzip
-import numpy as np
+from difflib import SequenceMatcher
 
 int_to_dssp_letter = {'0': ' ', '1': 'H', '2': 'B', '3': 'E', '4': 'G', '5': 'I', '6': 'T', '7': 'S'}
 dssp_letter_to_int = inv_map = {v: k for k, v in int_to_dssp_letter.items()}
@@ -29,16 +29,12 @@ def get_inference_input():
     return src
 
 
-def clear_previous_runs(model_dir, data_dir, log_dir):
-    if model_dir:
-        shutil.rmtree(model_dir, ignore_errors=True)
-        os.mkdir(model_dir)
-    if data_dir:
-        shutil.rmtree(data_dir, ignore_errors=True)
-        os.mkdir(data_dir)
-    if log_dir:
-        shutil.rmtree(log_dir, ignore_errors=True)
-        os.mkdir(log_dir)
+def clear_previous_run(hparams):
+    print('Clearing previous data and log files.')
+    shutil.rmtree(hparams.model_dir, ignore_errors=True)
+    os.mkdir(hparams.model_dir)
+    shutil.rmtree(hparams.log_dir, ignore_errors=True)
+    os.mkdir(hparams.log_dir)
 
 
 def download_raw_data(data_dir):
@@ -133,6 +129,11 @@ def make_vocab_files(data_dir, src_eos, tgt_sos, tgt_eos):
 
 
 def prep_nmt_dataset(hparams):
+    print('Clearing previous data directory.')
+
+    shutil.rmtree(hparams.data_dir, ignore_errors=True)
+    os.mkdir(hparams.data_dir)
+
     print('Downloading raw data text file.')
 
     download_raw_data(data_dir=hparams.data_dir)
@@ -166,32 +167,16 @@ def percent_infer_accuracy(preds, targets):
     return correct/total
 
 
-def update_standard_deviation(old_total, old_squaresum, n, point):
-    total = old_total + point
-    squaresum = old_squaresum + (point ** 2)
-    stdev = np.sqrt((squaresum / n) - ((total / n) ** 2))
-    return total, squaresum, stdev
-
-
-def print_common_mistake(preds, src, tgts=None):
-    mistakes = []
-    mistake_freq = []
+def lib_percent_infer_accuracy(preds, targets):
+    avg_ratio = 0
     for i in range(len(preds)):
-        for j in range(len(preds[i])):
-            if tgts[i][j] != src[i][j]:
-                if not src[i][j] in mistakes:
-                    mistakes.append(src[i][j])
-                    mistake_freq.append(1)
-                else:
-                    mistake_freq[mistakes.index(src[i][j])] += 1
-    max = 0
-    first = 0
-    second = 0
-    third = 0
-    for k in range(len(mistakes)):
-        if mistake_freq[k] > max:
-            max = mistake_freq[k]
-            third = second
-            second = first
-            first = mistakes[k]
-    print('Most common sources of error: {}, {}, {}'.format(first, second, third))
+        end = len(targets[i])
+        for j, num in enumerate(targets[i]):
+            if num == 1:
+                end = j
+                break
+        pred = preds[i][:end]
+        target = targets[i][:end]
+        ratio = SequenceMatcher(None, pred, target).ratio()
+        avg_ratio += ratio
+    return avg_ratio/len(preds)

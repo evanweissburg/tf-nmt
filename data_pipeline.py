@@ -39,7 +39,7 @@ def get_iterator(hparams, src_data, tgt_data, weight_data, src_vocab_table, tgt_
     tgt_eos_id = tf.cast(tgt_vocab_table.lookup(tf.constant(hparams.tgt_eos)), tf.int32)
 
     dataset = tf.data.Dataset.zip((src_data, tgt_data, weight_data))
-    dataset = dataset.shuffle(hparams.shuffle_buffer_size, hparams.shuffle_seed, reshuffle_each_iteration=True)
+    dataset = dataset.shuffle(hparams.shuffle_buffer_size, reshuffle_each_iteration=True)
 
     dataset = dataset.map(lambda src, tgt, weights:
                           (tf.string_split([src], delimiter=',').values,

@@ -37,7 +37,7 @@ def get_hparams():
                                           tgt_eos='/s',                     # Also used for padding
 
                                           graph_seed=0,
-                                          shuffle_seed=0,
+                                          shuffle_seed=3,
                                           shuffle_buffer_size=10000,
                                           num_buckets=10,                     # 1 for no buckets
                                           max_len=500,                        # Largest is 5037
