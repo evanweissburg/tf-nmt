@@ -15,7 +15,7 @@ def get_hparams():
                                           eval_max_printouts=5,
                                           infer_max_printouts=10,
 
-                                          num_train_steps=50000,
+                                          num_train_steps=30000,
                                           l_rate=0.001,
                                           num_units=100,
                                           batch_size=150,

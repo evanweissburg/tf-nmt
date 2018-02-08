@@ -99,12 +99,13 @@ while global_step < hparams.num_train_steps:
 print()
 print('MODE >>> Prediction')
 
-while True:
-    src = utils.get_inference_input()
 
-    with pred_sess as sess:
-        with pred_model.graph.as_default():
-            loaded_pred_model, _ = model_builder.create_or_load_model(hparams, pred_model.model, sess)
+with pred_sess as sess:
+    with pred_model.graph.as_default():
+        loaded_pred_model, _ = model_builder.create_or_load_model(hparams, pred_model.model, sess)
+
+    while True:
+        src = utils.get_inference_input()
 
         sess.run(pred_model.iterator.initializer, feed_dict={pred_model.src_placeholder: [src]})
         ids = loaded_pred_model.pred(pred_sess)
