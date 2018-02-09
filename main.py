@@ -41,10 +41,6 @@ def eval_step_log():
     eval_sess.run(eval_model.iterator.initializer)
     loss, src, tgts, ids = loaded_eval_model.eval(eval_sess)
 
-    utils.print_example(ids, src, tgts, hparams.eval_max_printouts)
-    print('EVAL STEP >>> @ Train Step {}: Completed with loss {}'.format(global_step, loss))
-    utils.print_common_mistake(ids, src, tgts)
-
     summary_writer = tf.summary.FileWriter(os.path.join(hparams.log_dir, 'eval'), eval_model.graph)
     loss_summary = tf.Summary(value=[tf.Summary.Value(tag='loss', simple_value=loss)])
     summary_writer.add_summary(loss_summary, global_step)
@@ -79,37 +75,20 @@ print('MODE >>> Training ({} out of {} steps)'.format(global_step, hparams.num_t
 epoch = 0
 train_sess.run(train_model.iterator.initializer)
 
-n = 0
-total_loss = 0
-square_sum = 0
-stdev = 0
-
-m = 0
-total_accuracy = 0
-accuracy_square_sum = 0
-accuracy_stdev = 0
-
 while global_step < hparams.num_train_steps:
 
     try:
         _, loss, global_step = loaded_train_model.train(train_sess)
 
-        n += 1
-        total_loss, square_sum, stdev = utils.update_standard_deviation(total_loss, square_sum, n, loss)
-
         if global_step % hparams.train_log_freq == 0:
             train_log(global_step)
-            print('Standard deviation: {}'.format(stdev))
 
         if global_step % hparams.eval_log_freq == 0:
             loaded_train_model.saver.save(train_sess, hparams.model_dir, global_step)
             eval_step_log()
 
         if global_step % hparams.infer_log_freq == 0:
-            m += 1
-            accuracy = loaded_train_model.saver.save(train_sess, hparams.model_dir, global_step)
-            total_accuracy, accuracy_square_sum, accuracy_stdev = utils.update_standard_deviation(total_accuracy, accuracy_square_sum, m, accuracy)
-            print('Accuracy standard deviation: {}'.format(accuracy_stdev))
+            loaded_train_model.saver.save(train_sess, hparams.model_dir, global_step)
             infer_step_log()
 
     except tf.errors.OutOfRangeError:
