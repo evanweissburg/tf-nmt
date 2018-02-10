@@ -41,6 +41,9 @@ def eval_step_log():
     eval_sess.run(eval_model.iterator.initializer)
     loss, src, tgts, ids = loaded_eval_model.eval(eval_sess)
 
+    utils.print_example(ids, src, tgts, hparams.eval_max_printouts)
+    print('EVAL STEP >>> @ Train Step {}: Completed with loss {}'.format(global_step, loss))
+
     summary_writer = tf.summary.FileWriter(os.path.join(hparams.log_dir, 'eval'), eval_model.graph)
     loss_summary = tf.Summary(value=[tf.Summary.Value(tag='loss', simple_value=loss)])
     summary_writer.add_summary(loss_summary, global_step)

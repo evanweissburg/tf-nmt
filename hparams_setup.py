@@ -15,10 +15,10 @@ def get_hparams():
                                           eval_max_printouts=5,
                                           infer_max_printouts=10,
 
-                                          num_train_steps=30000,
+                                          num_train_steps=40000,
                                           l_rate=0.001,
-                                          num_units=100,
-                                          batch_size=150,
+                                          num_units=300,
+                                          batch_size=100,
                                           max_gradient_norm=5.0,
                                           attention=True,
                                           beam_search=True,
