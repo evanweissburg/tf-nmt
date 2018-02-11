@@ -5,10 +5,10 @@ import os
 def get_hparams():
     project_dir = '/home/nave01314/IdeaProjects/tf-nmt/'
 
-    hparams = tf.contrib.training.HParams(model_dir=os.path.join(project_dir, 'ckpts/'),
+    hparams = tf.contrib.training.HParams(model_dir=os.path.join(project_dir, 'model_saves/'),
                                           data_dir=os.path.join(project_dir, 'data/'),
-                                          log_dir=os.path.join(project_dir, 'logs/'),
 
+                                          test_split_rate=10,
                                           train_log_freq=10,
                                           eval_log_freq=50,
                                           infer_log_freq=100,
@@ -27,7 +27,7 @@ def get_hparams():
                                           bidir_encoder=True,
                                           num_layers=2,                       # Must be even if bidirectional is enabled
 
-                                          src_vsize=24,                       # FASTA + eos - only used for embedding
+                                          src_vsize=26,                       # FASTA + eos - only used for embedding
                                           tgt_vsize=10,                       # 8 + sos + eos - only used for embedding
                                           src_emsize=15,
                                           tgt_emsize=10,

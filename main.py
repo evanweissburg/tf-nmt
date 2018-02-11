@@ -28,7 +28,7 @@ pred_sess = tf.Session(graph=pred_model.graph)
 def train_log(global_step):
     print('TRAIN STEP >>> @ Train Step {}: Completed with loss {}'.format(global_step, loss))
 
-    summary_writer = tf.summary.FileWriter(os.path.join(hparams.log_dir, 'train'), train_model.graph)
+    summary_writer = tf.summary.FileWriter(os.path.join(hparams.model_dir, 'train'), train_model.graph)
     loss_summary = tf.Summary(value=[tf.Summary.Value(tag='loss', simple_value=loss)])
     summary_writer.add_summary(loss_summary, global_step)
     summary_writer.close()
@@ -44,7 +44,7 @@ def eval_step_log():
     utils.print_example(ids, src, tgts, hparams.eval_max_printouts)
     print('EVAL STEP >>> @ Train Step {}: Completed with loss {}'.format(global_step, loss))
 
-    summary_writer = tf.summary.FileWriter(os.path.join(hparams.log_dir, 'eval'), eval_model.graph)
+    summary_writer = tf.summary.FileWriter(os.path.join(hparams.model_dir, 'eval'), eval_model.graph)
     loss_summary = tf.Summary(value=[tf.Summary.Value(tag='loss', simple_value=loss)])
     summary_writer.add_summary(loss_summary, global_step)
     summary_writer.close()
@@ -64,7 +64,7 @@ def infer_step_log():
     utils.print_example(ids, src, tgts, hparams.infer_max_printouts)
     print('INFER STEP >>> @ Train Step {}: Completed with {}% correct'.format(global_step, accuracy))
 
-    summary_writer = tf.summary.FileWriter(os.path.join(hparams.log_dir, 'infer'), infer_model.graph)
+    summary_writer = tf.summary.FileWriter(os.path.join(hparams.model_dir, 'infer'), infer_model.graph)
     loss_summary = tf.Summary(value=[tf.Summary.Value(tag='accuracy', simple_value=accuracy)])
     summary_writer.add_summary(loss_summary, global_step)
     summary_writer.close()
@@ -79,7 +79,6 @@ epoch = 0
 train_sess.run(train_model.iterator.initializer)
 
 while global_step < hparams.num_train_steps:
-
     try:
         _, loss, global_step = loaded_train_model.train(train_sess)
 

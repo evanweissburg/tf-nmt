@@ -31,11 +31,9 @@ def get_inference_input():
 
 
 def clear_previous_run(hparams):
-    print('Clearing previous data and log files.')
+    print('Clearing previous ckpt and log files.')
     shutil.rmtree(hparams.model_dir, ignore_errors=True)
     os.mkdir(hparams.model_dir)
-    shutil.rmtree(hparams.log_dir, ignore_errors=True)
-    os.mkdir(hparams.log_dir)
 
 
 def download_raw_data(data_dir):
@@ -48,7 +46,7 @@ def download_raw_data(data_dir):
     os.remove('ss.txt.gz')
 
 
-def split_primary_secondary(data_dir, max_size, max_len, max_weight, delta_weight, min_weight):
+def make_primary_secondary(data_dir, max_size, max_len, max_weight, delta_weight, min_weight):
     with open(os.path.join(data_dir, 'ss.txt')) as file:
         sequences = []
         l_index = 0
@@ -129,6 +127,47 @@ def make_vocab_files(data_dir, src_eos, tgt_sos, tgt_eos):
             file.write(char + '\n')
 
 
+def split_dataset(data_dir, test_split_rate):
+    primary = list()
+    with open(data_dir+'primary.csv', 'r+') as file:
+        reader = csv.reader(file)
+        for row in reader:
+            primary.append(row)
+
+    with open(data_dir+'primary_train.csv', 'w+', newline='') as train:
+        with open(data_dir+'primary_test.csv', 'w+', newline='') as test:
+            train_w = csv.writer(train)
+            test_w = csv.writer(test)
+            for i, seq in enumerate(primary):
+                train_w.writerow(seq) if i % test_split_rate != 0 else test_w.writerow(seq)
+
+    secondary = list()
+    with open(data_dir+'secondary.csv', 'r+') as file:
+        reader = csv.reader(file)
+        for row in reader:
+            secondary.append(row)
+
+    with open(data_dir+'secondary_train.csv', 'w+', newline='') as train:
+        with open(data_dir+'secondary_test.csv', 'w+', newline='') as test:
+            train_w = csv.writer(train)
+            test_w = csv.writer(test)
+            for i, seq in enumerate(secondary):
+                train_w.writerow(seq) if i % test_split_rate != 0 else test_w.writerow(seq)
+
+    weights = list()
+    with open(data_dir+'weights.csv', 'r+') as file:
+        reader = csv.reader(file)
+        for row in reader:
+            weights.append(row)
+
+    with open(data_dir+'weights_train.csv', 'w+', newline='') as train:
+        with open(data_dir+'weights_test.csv', 'w+', newline='') as test:
+            train_w = csv.writer(train)
+            test_w = csv.writer(test)
+            for i, seq in enumerate(weights):
+                train_w.writerow(seq) if i % test_split_rate != 0 else test_w.writerow(seq)
+
+
 def prep_nmt_dataset(hparams):
     print('Clearing previous data directory.')
 
@@ -139,18 +178,22 @@ def prep_nmt_dataset(hparams):
 
     download_raw_data(data_dir=hparams.data_dir)
 
-    print('Generating dataset.')
+    print('Generating base dataset.')
 
-    split_primary_secondary(data_dir=hparams.data_dir, max_size=hparams.dataset_max_size, max_len=hparams.max_len,
-                            max_weight=hparams.max_weight, delta_weight=hparams.delta_weight,
-                            min_weight=hparams.min_weight)
+    make_primary_secondary(data_dir=hparams.data_dir, max_size=hparams.dataset_max_size, max_len=hparams.max_len,
+                           max_weight=hparams.max_weight, delta_weight=hparams.delta_weight,
+                           min_weight=hparams.min_weight)
 
-    print('Data split complete, generating vocab files.')
+    print('Generating vocab files.')
 
     make_vocab_files(data_dir=hparams.data_dir, src_eos=hparams.src_eos,
                      tgt_sos=hparams.tgt_sos, tgt_eos=hparams.tgt_eos)
 
-    print('Vocab generation complete.')
+    print('Splitting base dataset into train/test.')
+
+    split_dataset(data_dir=hparams.data_dir, test_split_rate=hparams.test_split_rate)
+
+    print('Files created successfully.')
 
 
 def percent_infer_accuracy(preds, targets):

@@ -28,9 +28,9 @@ def create_train_model(hparams):
 
     src_vocab_loc = hparams.data_dir + 'primary_vocab.txt'
     tgt_vocab_loc = hparams.data_dir + 'secondary_vocab.txt'
-    src_loc = hparams.data_dir + 'primary.csv'
-    tgt_loc = hparams.data_dir + 'secondary.csv'
-    weights_loc = hparams.data_dir + 'weights.csv'
+    src_loc = hparams.data_dir + 'primary_train.csv'
+    tgt_loc = hparams.data_dir + 'secondary_train.csv'
+    weights_loc = hparams.data_dir + 'weights_train.csv'
 
     with graph.as_default():
         src_vocab_table, tgt_vocab_table = data_pipeline.make_vocab_tables(src_vocab_loc, tgt_vocab_loc)
@@ -65,9 +65,9 @@ def create_eval_model(hparams):
 
     src_vocab_loc = hparams.data_dir + 'primary_vocab.txt'
     tgt_vocab_loc = hparams.data_dir + 'secondary_vocab.txt'
-    src_loc = hparams.data_dir + 'primary.csv'
-    tgt_loc = hparams.data_dir + 'secondary.csv'
-    weights_loc = hparams.data_dir + 'weights.csv'
+    src_loc = hparams.data_dir + 'primary_test.csv'
+    tgt_loc = hparams.data_dir + 'secondary_test.csv'
+    weights_loc = hparams.data_dir + 'weights_test.csv'
 
     with graph.as_default():
         src_vocab_table, tgt_vocab_table = data_pipeline.make_vocab_tables(src_vocab_loc, tgt_vocab_loc)
@@ -102,9 +102,9 @@ def create_infer_model(hparams):
 
     src_vocab_loc = hparams.data_dir + 'primary_vocab.txt'
     tgt_vocab_loc = hparams.data_dir + 'secondary_vocab.txt'
-    src_loc = hparams.data_dir + 'primary.csv'
-    tgt_loc = hparams.data_dir + 'secondary.csv'
-    weights_loc = hparams.data_dir + 'weights.csv'
+    src_loc = hparams.data_dir + 'primary_test.csv'
+    tgt_loc = hparams.data_dir + 'secondary_test.csv'
+    weights_loc = hparams.data_dir + 'weights_test.csv'
 
     with graph.as_default():
         src_vocab_table, tgt_vocab_table = data_pipeline.make_vocab_tables(src_vocab_loc, tgt_vocab_loc)
