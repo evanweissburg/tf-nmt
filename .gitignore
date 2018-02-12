@@ -2,7 +2,7 @@
 model_saves/
 data/
 logs/
-CACHE-300/
-CACHE/
 model_saves/eval/
 model_saves/train/
+__pycache__/
+model_saves-300/

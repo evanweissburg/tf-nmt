@@ -5,6 +5,8 @@ import urllib.request
 import gzip
 from difflib import SequenceMatcher
 import numpy as np
+import random
+import string
 
 int_to_dssp_letter = {'0': ' ', '1': 'H', '2': 'B', '3': 'E', '4': 'G', '5': 'I', '6': 'T', '7': 'S'}
 dssp_letter_to_int = inv_map = {v: k for k, v in int_to_dssp_letter.items()}
@@ -22,12 +24,16 @@ def print_example(preds, src, tgts=None, max_prints=None):
 
 
 def get_inference_input():
-    user_in = input('Enter a protein (FASTA only): ')
+    user_in = input('Enter a protein (FASTA only - "r" for random): ')
     src = ''
-    for ch in user_in:
-        src = src + ch + ','
-    src = src[:-1]
-    return src
+    if user_in is not 'r':
+        for ch in user_in:
+            src = src + ch + ','
+    else:
+        rand = ''.join(random.choices(string.ascii_uppercase, k=30)).replace('J', '')
+        for ch in rand:
+            src = src + ch + ','
+    return src[:-1]     # remove trailing comma
 
 
 def clear_previous_run(hparams):
@@ -223,6 +229,8 @@ def lib_percent_infer_accuracy(preds, targets):
         target = targets[i][:end]
         ratio = SequenceMatcher(None, pred, target).ratio()
         avg_ratio += ratio
+        print(ratio)
+    print('legit: ' + str(percent_infer_accuracy(preds, targets)))
     return avg_ratio/len(preds)
 
 
