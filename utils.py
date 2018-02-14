@@ -52,7 +52,7 @@ def download_raw_data(data_dir):
     os.remove('ss.txt.gz')
 
 
-def make_primary_secondary(data_dir, max_size, max_len, max_weight, delta_weight, min_weight):
+def make_primary_secondary(data_dir, max_size, max_len, max_weight, delta_weight, min_weight, max_edit_distance):
     with open(os.path.join(data_dir, 'ss.txt')) as file:
         sequences = []
         l_index = 0
@@ -76,6 +76,8 @@ def make_primary_secondary(data_dir, max_size, max_len, max_weight, delta_weight
             if max_size and i == max_size:
                 break
             if max_len and len(protein[3]) > max_len:
+                continue
+            if edit_distance(protein[3], sequences[j][3]) > max_edit_distance:
                 continue
             prot_labels.append(protein[0][1:7])
             primary.append(protein[1])
@@ -188,7 +190,7 @@ def prep_nmt_dataset(hparams):
 
     make_primary_secondary(data_dir=hparams.data_dir, max_size=hparams.dataset_max_size, max_len=hparams.max_len,
                            max_weight=hparams.max_weight, delta_weight=hparams.delta_weight,
-                           min_weight=hparams.min_weight)
+                           min_weight=hparams.min_weight, max_edit_distance=hparams.max_edit_distance)
 
     print('Generating vocab files.')
 
@@ -263,3 +265,22 @@ def print_common_mistake(preds, src, tgts=None):
             second = first
             first = mistakes[k]
     print('Most common sources of error: {}, {}, {}'.format(first, second, third))
+
+def edit_distance(a, b):
+    m = len(a)
+    n = len(b)
+    edit_dist = [[0 for x in range(n+1)] for x in range(m+1)]
+    for i in range(m+1):
+        for j in range(n+1):
+            if i == 0:
+                edit_dist[i][j] = j
+            elif j == 0:
+                edit_dist[i][j] = i
+            elif a[i-1] == b[j-1]:
+                edit_dist[i][j] = edit_dist[i-1][j-1]
+            else:
+                edit_dist[i][j] = 1 + min(edit_dist[i][j-1],
+                                          edit_dist[i-1][j],
+                                          edit_dist[i-1][j-1])
+
+    return edit_dist[m][n]
