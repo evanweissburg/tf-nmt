@@ -1,8 +1,6 @@
 .idea/
 model_saves/
 data/
-logs/
-model_saves/eval/
-model_saves/train/
 __pycache__/
 model_saves-300/
+model_saves-400/

@@ -73,11 +73,13 @@ def make_primary_secondary(data_dir, max_size, max_len, max_weight, delta_weight
         primary = []
         secondary = []
         for i, protein in enumerate(sequences):
+            if i % 100 == 0:
+                print(i)
             if max_size and i == max_size:
                 break
             if max_len and len(protein[3]) > max_len:
                 continue
-            if edit_distance(protein[3], sequences[j][3]) < min_edit_distance:
+            if edit_distance(protein[3], sequences[i][3]) < min_edit_distance:
                 continue
             prot_labels.append(protein[0][1:7])
             primary.append(protein[1])
@@ -190,7 +192,7 @@ def prep_nmt_dataset(hparams):
 
     make_primary_secondary(data_dir=hparams.data_dir, max_size=hparams.dataset_max_size, max_len=hparams.max_len,
                            max_weight=hparams.max_weight, delta_weight=hparams.delta_weight,
-                           min_weight=hparams.min_weight, max_edit_distance=hparams.min_edit_distance)
+                           min_weight=hparams.min_weight, min_edit_distance=hparams.min_edit_distance)
 
     print('Generating vocab files.')
 
