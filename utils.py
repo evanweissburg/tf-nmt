@@ -83,7 +83,8 @@ def make_primary_secondary(data_dir, max_size, max_len, max_weight, delta_weight
                 continue
             try:
                 for j in range(i+1, len(sequences)):
-                    if edit_distance(protein[3], sequences[j][3]) < min_edit_distance:
+                    ed = edit_distance(protein[3], sequences[j][3])
+                    if ed < min_edit_distance:
                         raise SimilarityException
             except SimilarityException:
                 continue
