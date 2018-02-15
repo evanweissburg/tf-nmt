@@ -52,6 +52,10 @@ def download_raw_data(data_dir):
     os.remove('ss.txt.gz')
 
 
+class SimilarityException(Exception):
+    pass
+
+
 def make_primary_secondary(data_dir, max_size, max_len, max_weight, delta_weight, min_weight, min_edit_distance):
     with open(os.path.join(data_dir, 'ss.txt')) as file:
         sequences = []
@@ -77,11 +81,16 @@ def make_primary_secondary(data_dir, max_size, max_len, max_weight, delta_weight
                 break
             if max_len and len(protein[3]) > max_len:
                 continue
-            if edit_distance(protein[3], sequences[j][3]) < min_edit_distance:
+            try:
+                for j in range(i+1, len(sequences)):
+                    if edit_distance(protein[3], sequences[j][3]) < min_edit_distance:
+                        raise SimilarityException
+            except SimilarityException:
                 continue
             prot_labels.append(protein[0][1:7])
             primary.append(protein[1])
             secondary.append(protein[3])
+        print("Edit distance check yielded a dataset of {} proteins.".format(len[primary]))
 
     with open(data_dir+'primary.csv', 'w+', newline='') as file:
         writer = csv.writer(file)
@@ -190,7 +199,7 @@ def prep_nmt_dataset(hparams):
 
     make_primary_secondary(data_dir=hparams.data_dir, max_size=hparams.dataset_max_size, max_len=hparams.max_len,
                            max_weight=hparams.max_weight, delta_weight=hparams.delta_weight,
-                           min_weight=hparams.min_weight, max_edit_distance=hparams.min_edit_distance)
+                           min_weight=hparams.min_weight, min_edit_distance=hparams.min_edit_distance)
 
     print('Generating vocab files.')
 

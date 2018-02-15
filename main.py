@@ -11,8 +11,8 @@ np.set_printoptions(linewidth=10000, threshold=1000000000)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 hparams = hparams_setup.get_hparams()
-#utils.clear_previous_run(hparams)
-#utils.prep_nmt_dataset(hparams)
+utils.clear_previous_run(hparams)
+utils.prep_nmt_dataset(hparams)
 
 train_model = model_builder.create_train_model(hparams)
 eval_model = model_builder.create_eval_model(hparams)
@@ -100,7 +100,6 @@ while global_step < hparams.num_train_steps:
 
 print()
 print('MODE >>> Prediction')
-
 
 with pred_sess as sess:
     with pred_model.graph.as_default():
