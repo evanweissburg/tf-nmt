@@ -3,7 +3,7 @@ import os
 
 
 def get_hparams():
-    project_dir = '/Users/ianbulovic/IdeaProjects/tf-nmt/'
+    project_dir = '/home/nave01314/IdeaProjects/tf-nmt/'
 
     hparams = tf.contrib.training.HParams(model_dir=os.path.join(project_dir, 'model_saves/'),
                                           data_dir=os.path.join(project_dir, 'data/'),
@@ -15,7 +15,7 @@ def get_hparams():
                                           eval_max_printouts=5,
                                           infer_max_printouts=10,
 
-                                          num_train_steps=400001,
+                                          num_train_steps=40000,
                                           l_rate=0.001,
                                           num_units=300,
                                           batch_size=100,
