@@ -1,6 +1,5 @@
 .idea/
-model_saves/
-data/
+_old/
+ckpts/
+dataset/
 __pycache__/
-model_saves-300/
-model_saves-400/

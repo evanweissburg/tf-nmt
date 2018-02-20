@@ -3,16 +3,18 @@ import tensorflow as tf
 import os
 
 import hparams_setup
-import utils
 import model_builder
+from utils import io
+from utils import metrics
+from utils import preprocess
 
 
 np.set_printoptions(linewidth=10000, threshold=1000000000)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 hparams = hparams_setup.get_hparams()
-utils.clear_previous_run(hparams)
-utils.prep_nmt_dataset(hparams)
+preprocess.clear_previous_run(hparams)
+preprocess.prep_nmt_dataset(hparams)
 
 train_model = model_builder.create_train_model(hparams)
 eval_model = model_builder.create_eval_model(hparams)
@@ -41,7 +43,7 @@ def eval_step_log():
     eval_sess.run(eval_model.iterator.initializer)
     loss, src, tgts, ids = loaded_eval_model.eval(eval_sess)
 
-    utils.print_example(ids, src, tgts, hparams.eval_max_printouts)
+    io.print_example(ids, src, tgts, hparams.eval_max_printouts)
     print('EVAL STEP >>> @ Train Step {}: Completed with loss {}'.format(global_step, loss))
 
     summary_writer = tf.summary.FileWriter(os.path.join(hparams.model_dir, 'eval'), eval_model.graph)
@@ -59,9 +61,9 @@ def infer_step_log():
     if hparams.beam_search:
         ids = ids.transpose([2, 0, 1])   # Change from [batch_size, time_steps, beam_width] to [beam_width, batch_size, time_steps]
         ids = ids[0]  # Only use top 1 prediction from top K
-    accuracy = np.round(utils.lib_percent_infer_accuracy(preds=ids, targets=tgts), 4) * 100
+    accuracy = np.round(metrics.lib_percent_infer_accuracy(preds=ids, targets=tgts), 4) * 100
 
-    utils.print_example(ids, src, tgts, hparams.infer_max_printouts)
+    io.print_example(ids, src, tgts, hparams.infer_max_printouts)
     print('INFER STEP >>> @ Train Step {}: Completed with {}% correct'.format(global_step, accuracy))
 
     summary_writer = tf.summary.FileWriter(os.path.join(hparams.model_dir, 'infer'), infer_model.graph)
@@ -106,7 +108,7 @@ with pred_sess as sess:
         loaded_pred_model, _ = model_builder.create_or_load_model(hparams, pred_model.model, sess)
 
     while True:
-        src = utils.get_inference_input()
+        src = io.get_inference_input()
 
         sess.run(pred_model.iterator.initializer, feed_dict={pred_model.src_placeholder: [src]})
         ids = loaded_pred_model.pred(pred_sess)
@@ -115,5 +117,5 @@ with pred_sess as sess:
             ids = ids[0]  # Only use top 1 prediction from top K
         src = src.split(',')+['-1']
 
-        utils.print_example(ids, [src])
+        io.print_example(ids, [src])
         print()
