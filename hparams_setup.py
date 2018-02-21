@@ -11,7 +11,7 @@ def get_hparams():
                                           test_split_rate=10,
                                           train_log_freq=10,
                                           eval_log_freq=50,
-                                          infer_log_freq=100,
+                                          infer_log_freq=1,
                                           eval_max_printouts=5,
                                           infer_max_printouts=10,
 
@@ -41,7 +41,7 @@ def get_hparams():
                                           shuffle_buffer_size=10000,
                                           num_buckets=10,                     # 1 for no buckets
                                           max_len=500,                        # Largest is 5037
-                                          min_edit_distance=0.3,
+                                          sampling_len=10,
                                           dataset_max_size=1000000,
                                           max_weight=1.0,
                                           delta_weight=0.3,

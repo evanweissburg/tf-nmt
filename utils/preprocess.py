@@ -22,11 +22,7 @@ def download_raw_data(data_dir):
     os.remove('ss.txt.gz')
 
 
-class SimilarityException(Exception):
-    pass
-
-
-def make_primary_secondary(data_dir, max_size, max_len, max_weight, delta_weight, min_weight, min_edit_distance):
+def make_primary_secondary(data_dir, max_size, max_len, sampling_len, max_weight, delta_weight, min_weight):
     with open(os.path.join(data_dir, 'ss.txt')) as file:
         sequences = []
         l_index = 0
@@ -43,24 +39,22 @@ def make_primary_secondary(data_dir, max_size, max_len, max_weight, delta_weight
             else:
                 sequences[-1][l_index] += line[:-1]
 
-        prot_labels = []
-        primary = []
-        secondary = []
-        for i, protein in enumerate(sequences):
-            if i >= max_size:
-                break
-            if len(protein[3]) > max_len:
-                continue
-            # try:
-            #     for j in range(i+1, len(sequences)):
-            #         ed = metrics.edit_distance(protein[3], sequences[j][3])
-            #         if ed < min_edit_distance:
-            #             raise SimilarityException
-            # except SimilarityException:
-            #     continue
-            prot_labels.append(protein[0][1:7])
-            primary.append(protein[1])
-            secondary.append(protein[3])
+    prot_labels = []
+    primary = []
+    secondary = []
+
+    for i, protein in enumerate(sequences):
+        if i >= max_size:
+            break
+        if len(protein[3]) > max_len:
+            continue
+        prot_labels.append(protein[0][1:7])
+        primary.append(protein[1])
+        secondary.append(protein[3])
+
+    uniques = metrics.find_uniques(secondary, max_len, sampling_len)
+    primary = [primary[i] for i in uniques]
+    secondary = [secondary[i] for i in uniques]
 
     with open(data_dir+'primary.csv', 'w+', newline='') as file:
         writer = csv.writer(file)
@@ -155,11 +149,12 @@ def prep_nmt_dataset(hparams):
 
     download_raw_data(data_dir=hparams.data_dir)
 
-    print('Generating base dataset.')
+    print('Generating base dataset (filtered by total size, length, and similarity).')
 
-    num_prots, num_raw = make_primary_secondary(data_dir=hparams.data_dir, max_size=hparams.dataset_max_size, max_len=hparams.max_len,
-                           max_weight=hparams.max_weight, delta_weight=hparams.delta_weight,
-                           min_weight=hparams.min_weight, min_edit_distance=hparams.min_edit_distance)
+    num_prots, num_raw = make_primary_secondary(data_dir=hparams.data_dir, max_size=hparams.dataset_max_size,
+                                                max_len=hparams.max_len, sampling_len=hparams.sampling_len,
+                                                max_weight=hparams.max_weight, delta_weight=hparams.delta_weight,
+                                                min_weight=hparams.min_weight)
 
     print('Using {} out of {} total proteins. Generating vocab files.'.format(num_prots, num_raw))
 

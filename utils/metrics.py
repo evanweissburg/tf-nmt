@@ -1,5 +1,7 @@
 from difflib import SequenceMatcher
 import numpy as np
+import random
+from collections import Counter
 
 
 def percent_infer_accuracy(preds, targets):
@@ -15,21 +17,6 @@ def percent_infer_accuracy(preds, targets):
             if pred[j] == target[j]:
                 correct += 1
     return correct/total
-
-
-def lib_percent_infer_accuracy(preds, targets):
-    avg_ratio = 0
-    for i in range(len(preds)):
-        end = len(targets[i])
-        for j, num in enumerate(targets[i]):
-            if num == 1:
-                end = j
-                break
-        pred = preds[i][:end]
-        target = targets[i][:end]
-        ratio = SequenceMatcher(None, pred, target).ratio()
-        avg_ratio += ratio
-    return avg_ratio/len(preds)
 
 
 def update_standard_deviation(old_total, old_squaresum, n, point):
@@ -61,6 +48,21 @@ def print_common_mistake(preds, src, tgts=None):
             second = first
             first = mistakes[k]
     print('Most common sources of error: {}, {}, {}'.format(first, second, third))
+
+
+def find_uniques(strings, max_len, sampling_len):
+    def bit_sampling(string, sample_indices):
+            return ''.join([string[i] if i < len(string) else ' ' for i in sample_indices])
+
+    indices = random.sample(range(max_len), sampling_len)
+    hashes = [bit_sampling(string, indices) for string in strings]
+
+    counter = Counter(hashes)
+    uniques = list()
+    for most_common, count in counter.most_common():
+        group_indices = [i for i, x in enumerate(hashes) if x == most_common]
+        uniques.append(group_indices[0])
+    return uniques
 
 
 def edit_distance(a, b):

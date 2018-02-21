@@ -58,10 +58,12 @@ def infer_step_log():
 
     infer_sess.run(infer_model.iterator.initializer)
     src, tgts, ids = loaded_infer_model.infer(infer_sess)
+    print(tgts[0])
     if hparams.beam_search:
         ids = ids.transpose([2, 0, 1])   # Change from [batch_size, time_steps, beam_width] to [beam_width, batch_size, time_steps]
         ids = ids[0]  # Only use top 1 prediction from top K
-    accuracy = np.round(metrics.lib_percent_infer_accuracy(preds=ids, targets=tgts), 4) * 100
+    print(ids[0])
+    accuracy = np.round(metrics.percent_infer_accuracy(preds=ids, targets=tgts), 4) * 100
 
     io.print_example(ids, src, tgts, hparams.infer_max_printouts)
     print('INFER STEP >>> @ Train Step {}: Completed with {}% correct'.format(global_step, accuracy))
