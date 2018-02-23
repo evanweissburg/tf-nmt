@@ -1,4 +1,3 @@
-from difflib import SequenceMatcher
 import numpy as np
 import random
 from collections import Counter
@@ -51,6 +50,8 @@ def print_common_mistake(preds, src, tgts=None):
 
 
 def find_uniques(strings, max_len, sampling_len):
+    random.seed(0)
+
     def bit_sampling(string, sample_indices):
             return ''.join([string[i] if i < len(string) else ' ' for i in sample_indices])
 
