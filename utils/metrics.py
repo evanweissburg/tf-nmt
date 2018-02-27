@@ -3,12 +3,44 @@ import random
 from collections import Counter
 
 
-def percent_infer_accuracy(preds, targets):
+def q8_infer_accuracy(preds, targets):
     correct = 0
     total = 0
     for i in range(len(preds)):
         pred = preds[i]
         target = targets[i]
+        for j in range(len(pred)):
+            if target[j] == 1:  # /s is the second (index 1) vocab word in secondary_vocab.txt
+                break
+            total += 1
+            if pred[j] == target[j]:
+                correct += 1
+    return correct/total
+
+
+def q3_infer_accuracy(preds, targets):
+    helix = [5, 8, 9]
+    strand = [6, 7]
+    loops = [2, 3, 4]
+
+    def replace_q3(seq):
+        for i, char in enumerate(seq):
+            if char in helix:
+                seq[i] = 2
+            elif char in strand:
+                seq[i] = 3
+            elif char in loops:
+                seq[i] = 4
+
+    correct = 0
+    total = 0
+    for i in range(len(preds)):
+        pred = preds[i]
+        target = targets[i]
+
+        replace_q3(pred)
+        replace_q3(target)
+
         for j in range(len(pred)):
             if target[j] == 1:  # /s is the second (index 1) vocab word in secondary_vocab.txt
                 break

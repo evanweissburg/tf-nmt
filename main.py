@@ -61,10 +61,11 @@ def infer_step_log():
     if hparams.beam_search:
         ids = ids.transpose([2, 0, 1])   # Change from [batch_size, time_steps, beam_width] to [beam_width, batch_size, time_steps]
         ids = ids[0]  # Only use top 1 prediction from top K
-    accuracy = np.round(metrics.percent_infer_accuracy(preds=ids, targets=tgts), 4) * 100
+    accuracy = np.round(metrics.q8_infer_accuracy(preds=ids, targets=tgts), 4) * 100
 
     io.print_example(ids, src, tgts, hparams.infer_max_printouts)
     print('INFER STEP >>> @ Train Step {}: Completed with {}% correct'.format(global_step, accuracy))
+    print('Q3: {}'.format(np.round(metrics.q3_infer_accuracy(preds=ids, targets=tgts), 4) * 100))
 
     summary_writer = tf.summary.FileWriter(os.path.join(hparams.model_dir, 'infer'), infer_model.graph)
     loss_summary = tf.Summary(value=[tf.Summary.Value(tag='accuracy', simple_value=accuracy)])
