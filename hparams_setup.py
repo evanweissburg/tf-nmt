@@ -3,7 +3,7 @@ import os
 
 
 def get_hparams():
-    project_dir = '/home/nave01314/IdeaProjects/tf-nmt/'
+    project_dir = '/Users/ianbulovic/IdeaProjects/tf-nmt/'
 
     hparams = tf.contrib.training.HParams(model_dir=os.path.join(project_dir, 'ckpts/'),
                                           data_dir=os.path.join(project_dir, 'dataset/'),
@@ -11,7 +11,7 @@ def get_hparams():
                                           test_split_rate=10,
                                           train_log_freq=10,
                                           eval_log_freq=50,
-                                          infer_log_freq=1,
+                                          infer_log_freq=100,
                                           eval_max_printouts=5,
                                           infer_max_printouts=10,
 
