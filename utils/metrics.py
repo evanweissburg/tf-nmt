@@ -1,6 +1,7 @@
 import numpy as np
 import random
 from collections import Counter
+import csv
 
 
 def q8_infer_accuracy(preds, targets):
@@ -90,7 +91,7 @@ def print_confusion(preds, tgts):
     for i in range(len(confusion)):                             # index over all target ss elements
         total = sum(confusion[i])                               # sum all occurrences of this target
         for j in range(len(confusion[i])):                      # index over predictions
-            confusion[i][j] = confusion[i][j] / total           # calculate percentages by dividing by the sum
+            confusion[i][j] /= total                            # calculate percentages by dividing by the sum
 
 
 def find_uniques(strings, max_len, sampling_len):
@@ -128,3 +129,22 @@ def edit_distance(a, b):
                                           edit_dist[i-1][j-1])
 
     return edit_dist[m][n] / ((m+n)/2)
+
+
+def record_edit_dists(data_dir):
+    seqs = list()
+    with open(data_dir+'primary.csv', 'r+') as file:
+        reader = csv.reader(file)
+        for row in reader:
+            seqs.append(row)
+
+    n = len(seqs)
+    with open(data_dir+'edit_dists.txt', 'w+', newline='') as out:
+        for i in range(n):
+            min_edit_dist = 10
+            for j in range(n):
+                if i == j:
+                    continue
+                min_edit_dist = min(min_edit_dist, edit_distance(seqs[i], seqs[j]))
+            out.write(str(min_edit_dist) + '\n')
+            print('{}: {}'.format(i, min_edit_dist))

@@ -52,9 +52,10 @@ def make_primary_secondary(data_dir, max_size, max_len, sampling_len, max_weight
         primary.append(protein[1])
         secondary.append(protein[3])
 
-    #uniques = metrics.find_uniques(secondary, max_len, sampling_len)
-    #primary = [primary[i] for i in uniques]
-    #secondary = [secondary[i] for i in uniques]
+    unique_pri = metrics.find_uniques(primary, max_len, sampling_len)
+    unique_sec = metrics.find_uniques(secondary, max_len, sampling_len)
+    primary = [primary[i] for i in unique_pri if i in unique_sec]
+    secondary = [secondary[i] for i in unique_pri if i in unique_sec]
 
     with open(data_dir+'primary.csv', 'w+', newline='') as file:
         writer = csv.writer(file)

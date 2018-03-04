@@ -17,7 +17,7 @@ def get_hparams():
 
                                           num_train_steps=40000,
                                           l_rate=0.001,
-                                          num_units=300,
+                                          num_units=500,
                                           batch_size=100,
                                           max_gradient_norm=5.0,
                                           attention=True,
