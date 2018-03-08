@@ -82,16 +82,19 @@ def print_common_mistake(preds, src, tgts=None):
     print('Most common sources of error: {}, {}, {}'.format(first, second, third))
 
 
-def print_confusion(preds, tgts):
+def get_confusion(preds, tgts):
     confusion = [[0 for x in range(10)] for y in range(10)]     # initialize confusion array
+    total = [0 for x in range(10)]
     for i in range(len(preds)):                                 # index over proteins
+        print(tgts[i])
         for j in range(len(preds[i])):                          # index over ss elements
-            confusion[tgts[i][j]][preds[i][j]] += 1             # increment relevant matrix element
+            if tgts[i][j] > -1 and preds[i][j] > -1:
+                confusion[tgts[i][j]][preds[i][j]] += 1         # increment relevant matrix element
+                total[tgts[i][j]] += 1
+                if tgts[i][j] == 1 and preds[i][j] == 1:
+                    break
 
-    for i in range(len(confusion)):                             # index over all target ss elements
-        total = sum(confusion[i])                               # sum all occurrences of this target
-        for j in range(len(confusion[i])):                      # index over predictions
-            confusion[i][j] /= total                            # calculate percentages by dividing by the sum
+    return confusion, total
 
 
 def find_uniques(strings, max_len, sampling_len):

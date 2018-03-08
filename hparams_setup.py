@@ -6,7 +6,7 @@ def get_hparams():
     project_dir = '/home/nave01314/IdeaProjects/tf-nmt/'
 
     hparams = tf.contrib.training.HParams(model_dir=os.path.join(project_dir, 'ckpts/'),
-                                          data_dir=os.path.join(project_dir, 'dataset/'),
+                                          data_dir=os.path.join('/Users/ianbulovic/IdeaProjects/tf-nmt/', 'dataset/'),
 
                                           test_split_rate=10,
                                           train_log_freq=10,
@@ -15,9 +15,9 @@ def get_hparams():
                                           eval_max_printouts=5,
                                           infer_max_printouts=10,
 
-                                          num_train_steps=41000,
+                                          num_train_steps=42000,
                                           l_rate=0.001,
-                                          num_units=500,
+                                          num_units=300,
                                           batch_size=100,
                                           max_gradient_norm=5.0,
                                           attention=True,
