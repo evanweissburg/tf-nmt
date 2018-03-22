@@ -14,30 +14,53 @@ def clear_previous_run(hparams):
 
 def download_raw_data(data_dir):
     urllib.request.urlretrieve('https://cdn.rcsb.org/etl/kabschSander/ss.txt.gz', filename='ss.txt.gz')
+    urllib.request.urlretrieve('http://dunbrack.fccc.edu/Guoli/culledpdb_hh/cullpdb_pc90_res3.0_R1.0_d180315_chains36135.gz', filename='cull.txt.gz')
 
     with gzip.open('ss.txt.gz', 'rb') as inF:
         with open(data_dir+'ss.txt', 'wb+') as outF:
             outF.write(inF.read())
 
-    os.remove('ss.txt.gz')
+    with gzip.open('cull.txt.gz', 'rb') as inF:
+        with open(data_dir+'cull.txt', 'wb+') as outF:
+            outF.write(inF.read())
 
+    os.remove('ss.txt.gz')
+    os.remove('cull.txt.gz')
+
+class SeqNotFound(Exception):
+    pass
 
 def make_primary_secondary(data_dir, max_size, max_len, sampling_len, max_weight, delta_weight, min_weight):
-    with open(os.path.join(data_dir, 'ss.txt')) as file:
-        sequences = []
-        l_index = 0
-        for line in file:
-            if line.find('sequence') is not -1:
-                sequences.append([])
-                sequences[-1].append(line[:-1])   # Get rid of line breaks
-                sequences[-1].append('')
-                l_index = 1
-            elif line.find('secstr') is not -1:
-                sequences[-1].append(line[:-1])
-                sequences[-1].append('')
-                l_index = 3
-            else:
-                sequences[-1][l_index] += line[:-1]
+    with open(os.path.join(data_dir, 'cull.txt')) as cull_file:
+        with open(os.path.join(data_dir, 'ss.txt')) as file:
+            sequences = []
+            cull = cull_file.readlines()
+            line = file.readline()
+            del cull[0]
+            for cur_cull in cull:
+                try:
+                    print(cur_cull[:4])
+                    while not(line.find('sequence') is not -1 and line.find(cur_cull[:4]) is not -1):
+                        line = file.readline()
+                        if line.find('sequence') is not -1 and line[1:5] > cur_cull[:4]:
+                            raise SeqNotFound()
+                    sequences.append([])
+                    sequences[-1].append(line[:-1])   # Get rid of line breaks
+                    sequences[-1].append('')
+                    l_index = 1
+                    line = file.readline()
+                    while line.find('sequence') == -1:
+                        if line.find('secstr') is not -1:
+                            sequences[-1].append(line[:-1])
+                            sequences[-1].append('')
+                            l_index = 3
+                        else:
+                            sequences[-1][l_index] += line[:-1]
+                        line = file.readline()
+                except SeqNotFound:
+                    continue
+
+
 
     prot_labels = []
     primary = []
@@ -53,10 +76,10 @@ def make_primary_secondary(data_dir, max_size, max_len, sampling_len, max_weight
         secondary.append(protein[3])
 
     #unique_pri = metrics.find_uniques(primary, max_len, sampling_len)
-    unique_sec = metrics.find_uniques(secondary, max_len, sampling_len)
+    #unique_sec = metrics.find_uniques(secondary, max_len, sampling_len)
     #tru_uniques = [i for i in unique_pri if i in unique_sec]
-    primary = [primary[i] for i in unique_sec]
-    secondary = [secondary[i] for i in unique_sec]
+    #primary = [primary[i] for i in unique_sec]
+    #secondary = [secondary[i] for i in unique_sec]
 
     with open(data_dir+'primary.csv', 'w+', newline='') as file:
         writer = csv.writer(file)

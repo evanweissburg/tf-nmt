@@ -15,7 +15,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 hparams = hparams_setup.get_hparams()
 
 #preprocess.clear_previous_run(hparams)
-#preprocess.prep_nmt_dataset(hparams)
+preprocess.prep_nmt_dataset(hparams)
 #metrics.record_edit_dists(hparams.data_dir)
 
 train_model = model_builder.create_train_model(hparams)
