@@ -3,19 +3,21 @@ import os
 
 
 def get_hparams():
-    project_dir = '/home/nave01314/IdeaProjects/tf-nmt/'
+    project_dir = '/Users/ianbulovic/IdeaProjects/tf-nmt/'
 
     hparams = tf.contrib.training.HParams(model_dir=os.path.join(project_dir, 'ckpts/'),
                                           data_dir=os.path.join('/Users/ianbulovic/IdeaProjects/tf-nmt/', 'dataset/'),
 
                                           test_split_rate=10,
+                                          validate_split_rate=5,
+
                                           train_log_freq=10,
                                           eval_log_freq=50,
                                           infer_log_freq=1,
                                           eval_max_printouts=5,
                                           infer_max_printouts=10,
 
-                                          num_train_steps=40000,
+                                          num_train_steps=1000,
                                           l_rate=0.001,
                                           num_units=300,
                                           batch_size=100,
@@ -41,10 +43,13 @@ def get_hparams():
                                           shuffle_buffer_size=10000,
                                           num_buckets=10,                     # 1 for no buckets
                                           max_len=500,                        # Largest is 5037
-                                          sampling_len=100,
                                           dataset_max_size=1000000,
                                           max_weight=1.0,
                                           delta_weight=0.3,
-                                          min_weight=0.1)
+                                          min_weight=0.1,
+
+                                          fragment_radius=10,
+                                          fragment_jump=1
+                                          )
 
     return hparams

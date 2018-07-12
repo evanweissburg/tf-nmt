@@ -14,9 +14,8 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 hparams = hparams_setup.get_hparams()
 
-#preprocess.clear_previous_run(hparams)
-preprocess.prep_nmt_dataset(hparams)
-#metrics.record_edit_dists(hparams.data_dir)
+preprocess.clear_previous_run(hparams)
+#preprocess.prep_nmt_dataset(hparams)
 
 train_model = model_builder.create_train_model(hparams)
 eval_model = model_builder.create_eval_model(hparams)
@@ -27,8 +26,6 @@ train_sess = tf.Session(graph=train_model.graph)
 eval_sess = tf.Session(graph=eval_model.graph)
 infer_sess = tf.Session(graph=infer_model.graph)
 pred_sess = tf.Session(graph=pred_model.graph)
-confusion = [[0 for x in range(10)] for y in range(10)]
-confusion_total = [0 for x in range(10)]
 
 
 def train_log(global_step):
@@ -66,26 +63,6 @@ def infer_step_log():
         ids = ids.transpose([2, 0, 1])   # Change from [batch_size, time_steps, beam_width] to [beam_width, batch_size, time_steps]
         ids = ids[0]  # Only use top 1 prediction from top K
     accuracy = np.round(metrics.q8_infer_accuracy(preds=ids, targets=tgts), 4) * 100
-
-    step_confusion, step_total = metrics.get_confusion(ids, tgts)
-    global confusion_total
-    global confusion
-    for k in range(10):
-        confusion_total[k] += step_total[k]
-
-    for i, a in enumerate(step_confusion):
-        for j, value in enumerate(a):
-            confusion[i][j] += value
-
-    print('Confusion: ')
-    for i in range(10):
-        print('Target {}:'.format(i))
-        for j in range(10):
-            if confusion_total[i] > 0:
-                print(confusion[i][j]/confusion_total[i])
-            else:
-                print('No data.')
-                break
 
     io.print_example(ids, src, tgts, hparams.infer_max_printouts)
     print('INFER STEP >>> @ Train Step {}: Completed with {}% correct'.format(global_step, accuracy))

@@ -14,7 +14,7 @@ def clear_previous_run(hparams):
 
 def download_raw_data(data_dir):
     urllib.request.urlretrieve('https://cdn.rcsb.org/etl/kabschSander/ss.txt.gz', filename='ss.txt.gz')
-    urllib.request.urlretrieve('http://dunbrack.fccc.edu/Guoli/culledpdb_hh/cullpdb_pc90_res3.0_R1.0_d180315_chains36135.gz', filename='cull.txt.gz')
+    urllib.request.urlretrieve('http://dunbrack.fccc.edu/Guoli/culledpdb_hh/cullpdb_pc90_res100_R100_inclNOTXRAY_inclCA_d180707_chains46590.gz', filename='cull.txt.gz')
 
     with gzip.open('ss.txt.gz', 'rb') as inF:
         with open(data_dir+'ss.txt', 'wb+') as outF:
@@ -27,10 +27,12 @@ def download_raw_data(data_dir):
     os.remove('ss.txt.gz')
     os.remove('cull.txt.gz')
 
+
 class SeqNotFound(Exception):
     pass
 
-def make_primary_secondary(data_dir, max_size, max_len, sampling_len, max_weight, delta_weight, min_weight):
+
+def make_primary_secondary(data_dir, max_size, max_len, max_weight, delta_weight, min_weight):
     with open(os.path.join(data_dir, 'cull.txt')) as cull_file:
         with open(os.path.join(data_dir, 'ss.txt')) as file:
             sequences = []
@@ -39,7 +41,6 @@ def make_primary_secondary(data_dir, max_size, max_len, sampling_len, max_weight
             del cull[0]
             for cur_cull in cull:
                 try:
-                    print(cur_cull[:4])
                     while not(line.find('sequence') is not -1 and line.find(cur_cull[:4]) is not -1):
                         line = file.readline()
                         if line.find('sequence') is not -1 and line[1:5] > cur_cull[:4]:
@@ -60,8 +61,6 @@ def make_primary_secondary(data_dir, max_size, max_len, sampling_len, max_weight
                 except SeqNotFound:
                     continue
 
-
-
     prot_labels = []
     primary = []
     secondary = []
@@ -74,12 +73,6 @@ def make_primary_secondary(data_dir, max_size, max_len, sampling_len, max_weight
         prot_labels.append(protein[0][1:7])
         primary.append(protein[1])
         secondary.append(protein[3])
-
-    #unique_pri = metrics.find_uniques(primary, max_len, sampling_len)
-    #unique_sec = metrics.find_uniques(secondary, max_len, sampling_len)
-    #tru_uniques = [i for i in unique_pri if i in unique_sec]
-    #primary = [primary[i] for i in unique_sec]
-    #secondary = [secondary[i] for i in unique_sec]
 
     with open(data_dir+'primary.csv', 'w+', newline='') as file:
         writer = csv.writer(file)
@@ -135,33 +128,67 @@ def make_vocab_files(data_dir, src_eos, tgt_sos, tgt_eos):
             file.write(char + '\n')
 
 
-def split_dataset(data_dir, test_split_rate):
+def split_dataset(data_dir, test_split_rate, validate_split_rate):
+    def do_split(reader, train_w, test_w, validate_w):
+        for i, seq in enumerate(reader):
+            i %= 100
+            if i < 100 - validate_split_rate - test_split_rate:
+                train_w.writerow(seq)
+            elif i < 100 - validate_split_rate:
+                test_w.writerow(seq)
+            else:
+                validate_w.writerow(seq)
+
     with open(data_dir+'primary.csv', 'r+') as file:
-        with open(data_dir+'primary_train.csv', 'w+', newline='') as train:
-            with open(data_dir+'primary_test.csv', 'w+', newline='') as test:
-                reader = csv.reader(file)
-                train_w = csv.writer(train)
-                test_w = csv.writer(test)
-                for i, seq in enumerate(reader):
-                    train_w.writerow(seq) if i % test_split_rate != 0 else test_w.writerow(seq)
+        with open(data_dir+'train/primary_train.csv', 'w+', newline='') as train:
+            with open(data_dir+'test/primary_test.csv', 'w+', newline='') as test:
+                with open(data_dir+'validate/primary_validate.csv', 'w+', newline='') as validate:
+                    do_split(csv.reader(file), csv.writer(train), csv.writer(test), csv.writer(validate))
 
     with open(data_dir+'secondary.csv', 'r+') as file:
-        with open(data_dir+'secondary_train.csv', 'w+', newline='') as train:
-            with open(data_dir+'secondary_test.csv', 'w+', newline='') as test:
-                reader = csv.reader(file)
-                train_w = csv.writer(train)
-                test_w = csv.writer(test)
-                for i, seq in enumerate(reader):
-                    train_w.writerow(seq) if i % test_split_rate != 0 else test_w.writerow(seq)
+        with open(data_dir+'train/secondary_train.csv', 'w+', newline='') as train:
+            with open(data_dir+'test/secondary_test.csv', 'w+', newline='') as test:
+                with open(data_dir+'validate/secondary_validate.csv', 'w+', newline='') as validate:
+                    do_split(csv.reader(file), csv.writer(train), csv.writer(test), csv.writer(validate))
 
     with open(data_dir+'weights.csv', 'r+') as file:
-        with open(data_dir+'weights_train.csv', 'w+', newline='') as train:
-            with open(data_dir+'weights_test.csv', 'w+', newline='') as test:
-                reader = csv.reader(file)
-                train_w = csv.writer(train)
-                test_w = csv.writer(test)
-                for i, seq in enumerate(reader):
-                    train_w.writerow(seq) if i % test_split_rate != 0 else test_w.writerow(seq)
+        with open(data_dir+'train/weights_train.csv', 'w+', newline='') as train:
+            with open(data_dir+'test/weights_test.csv', 'w+', newline='') as test:
+                with open(data_dir+'validate/weights_validate.csv', 'w+', newline='') as validate:
+                    do_split(csv.reader(file), csv.writer(train), csv.writer(test), csv.writer(validate))
+
+
+def fragment_datasets(data_dir, fragment_radius, fragment_jump):
+    def fragment_file(dataset):
+        with open(data_dir+dataset+'/primary_'+dataset+'.csv', 'r+') as primary:
+            with open(data_dir+dataset+'/secondary_'+dataset+'.csv', 'r+') as secondary:
+                with open(data_dir+dataset+'/weights_'+dataset+'.csv', 'r+') as weights:
+                    with open(data_dir+dataset+'/primary_'+dataset+'_frag.csv', 'w+') as primary_frag:
+                        with open(data_dir+dataset+'/secondary_'+dataset+'_frag.csv', 'w+') as secondary_frag:
+                            with open(data_dir+dataset+'/weights_'+dataset+'_frag.csv', 'w+') as weights_frag:
+                                with open(data_dir+dataset+'/'+dataset+'_frag.csv', 'w+') as frag_lookup:
+                                    primary_r = csv.reader(primary)
+                                    secondary_r = csv.reader(secondary)
+                                    weights_r = csv.reader(weights)
+                                    primary_frag_w = csv.writer(primary_frag)
+                                    secondary_frag_w = csv.writer(secondary_frag)
+                                    weights_frag_w = csv.writer(weights_frag)
+                                    frag_lookup_w = csv.writer(frag_lookup)
+                                    for prim in primary_r:
+                                        sec = next(secondary_r)
+                                        wei = next(weights_r)
+                                        num_frags = len(prim)//fragment_jump
+                                        for j in range(num_frags):
+                                            start = max(0, j-fragment_radius)
+                                            end = min(j+fragment_radius, len(prim))
+                                            primary_frag_w.writerow(prim[start:end])
+                                            secondary_frag_w.writerow(sec[start:end])
+                                            weights_frag_w.writerow(wei[start:end])
+                                        frag_lookup_w.writerow([num_frags])
+
+    fragment_file('train')
+    fragment_file('test')
+    fragment_file('validate')
 
 
 def prep_nmt_dataset(hparams):
@@ -169,6 +196,9 @@ def prep_nmt_dataset(hparams):
 
     shutil.rmtree(hparams.data_dir, ignore_errors=True)
     os.mkdir(hparams.data_dir)
+    os.mkdir(hparams.data_dir+'train/')
+    os.mkdir(hparams.data_dir+'test/')
+    os.mkdir(hparams.data_dir+'validate/')
 
     print('Downloading raw data text file.')
 
@@ -177,19 +207,20 @@ def prep_nmt_dataset(hparams):
     print('Generating base dataset (filtered by total size, length, and similarity).')
 
     num_prots, num_raw = make_primary_secondary(data_dir=hparams.data_dir, max_size=hparams.dataset_max_size,
-                                                max_len=hparams.max_len, sampling_len=hparams.sampling_len,
+                                                max_len=hparams.max_len,
                                                 max_weight=hparams.max_weight, delta_weight=hparams.delta_weight,
                                                 min_weight=hparams.min_weight)
 
     print('Using {} out of {} total proteins. Generating vocab files.'.format(num_prots, num_raw))
 
-    make_vocab_files(data_dir=hparams.data_dir, src_eos=hparams.src_eos,
-                     tgt_sos=hparams.tgt_sos, tgt_eos=hparams.tgt_eos)
+    make_vocab_files(data_dir=hparams.data_dir, src_eos=hparams.src_eos, tgt_sos=hparams.tgt_sos, tgt_eos=hparams.tgt_eos)
 
-    print('Splitting base dataset into train/test.')
+    print('Splitting base dataset into train/test/validate.')
 
-    split_dataset(data_dir=hparams.data_dir, test_split_rate=hparams.test_split_rate)
-    num_train = int(num_prots * (hparams.test_split_rate-1) // hparams.test_split_rate + num_prots % hparams.test_split_rate)
-    num_test = num_prots // hparams.test_split_rate
+    split_dataset(data_dir=hparams.data_dir, test_split_rate=hparams.test_split_rate, validate_split_rate=hparams.validate_split_rate)
 
-    print('{} train and {} test proteins allocated. Files created successfully.'.format(num_train, num_test))
+    print('Fragmenting datasets.')
+
+    fragment_datasets(data_dir=hparams.data_dir, fragment_radius=hparams.fragment_radius, fragment_jump=hparams.fragment_jump)
+
+    print('Files created successfully.')

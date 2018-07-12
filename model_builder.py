@@ -28,9 +28,9 @@ def create_train_model(hparams):
 
     src_vocab_loc = hparams.data_dir + 'primary_vocab.txt'
     tgt_vocab_loc = hparams.data_dir + 'secondary_vocab.txt'
-    src_loc = hparams.data_dir + 'primary_train.csv'
-    tgt_loc = hparams.data_dir + 'secondary_train.csv'
-    weights_loc = hparams.data_dir + 'weights_train.csv'
+    src_loc = hparams.data_dir + 'train/primary_train_frag.csv'
+    tgt_loc = hparams.data_dir + 'train/secondary_train_frag.csv'
+    weights_loc = hparams.data_dir + 'train/weights_train_frag.csv'
 
     with graph.as_default():
         src_vocab_table, tgt_vocab_table = data_pipeline.make_vocab_tables(src_vocab_loc, tgt_vocab_loc)
@@ -65,9 +65,9 @@ def create_eval_model(hparams):
 
     src_vocab_loc = hparams.data_dir + 'primary_vocab.txt'
     tgt_vocab_loc = hparams.data_dir + 'secondary_vocab.txt'
-    src_loc = hparams.data_dir + 'primary_test.csv'
-    tgt_loc = hparams.data_dir + 'secondary_test.csv'
-    weights_loc = hparams.data_dir + 'weights_test.csv'
+    src_loc = hparams.data_dir + 'test/primary_test_frag.csv'
+    tgt_loc = hparams.data_dir + 'test/secondary_test_frag.csv'
+    weights_loc = hparams.data_dir + 'test/weights_test_frag.csv'
 
     with graph.as_default():
         src_vocab_table, tgt_vocab_table = data_pipeline.make_vocab_tables(src_vocab_loc, tgt_vocab_loc)
@@ -93,7 +93,7 @@ def create_eval_model(hparams):
         iterator=iterator)
 
 
-class InferModel(collections.namedtuple("InferModel", ("graph", "model", "iterator"))):
+class InferModel(collections.namedtuple("ValidateModel", ("graph", "model", "iterator"))):
     pass
 
 
@@ -102,9 +102,9 @@ def create_infer_model(hparams):
 
     src_vocab_loc = hparams.data_dir + 'primary_vocab.txt'
     tgt_vocab_loc = hparams.data_dir + 'secondary_vocab.txt'
-    src_loc = hparams.data_dir + 'primary_test.csv'
-    tgt_loc = hparams.data_dir + 'secondary_test.csv'
-    weights_loc = hparams.data_dir + 'weights_test.csv'
+    src_loc = hparams.data_dir + 'validate/primary_validate_frag.csv'
+    tgt_loc = hparams.data_dir + 'validate/secondary_validate_frag.csv'
+    weights_loc = hparams.data_dir + 'validate/weights_validate_frag.csv'
 
     with graph.as_default():
         src_vocab_table, tgt_vocab_table = data_pipeline.make_vocab_tables(src_vocab_loc, tgt_vocab_loc)
