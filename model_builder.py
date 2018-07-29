@@ -18,6 +18,7 @@ def create_or_load_model(hparams, model, sess):
     global_step = model.global_step.eval(session=sess)
     return model, global_step
 
+#### TRAIN MODEL ####
 
 class TrainModel(collections.namedtuple("TrainModel", ("graph", "model", "iterator"))):
     pass
@@ -56,6 +57,8 @@ def create_train_model(hparams):
         iterator=iterator)
 
 
+#### EVAL MODEL --> TESTING MODEL ####
+
 class EvalModel(collections.namedtuple("EvalModel", ("graph", "model", "iterator"))):
     pass
 
@@ -93,6 +96,48 @@ def create_eval_model(hparams):
         iterator=iterator)
 
 
+#### EVAL2 MODEL --> TESTING 2 MODEL ####
+
+class Eval2Model(collections.namedtuple("Eval2Model", ("graph", "model", "iterator"))):
+    pass
+
+
+def create_eval2_model(hparams):
+    graph = tf.Graph()
+
+    src_vocab_loc = hparams.data_dir + 'primary_vocab.txt'
+    tgt_vocab_loc = hparams.data_dir + 'secondary_vocab.txt'
+    src_loc = hparams.data_dir + 'test/primary_test_frag.csv'
+    tgt_loc = hparams.data_dir + 'test/secondary_test_frag.csv'
+    weights_loc = hparams.data_dir + 'test/weights_test_frag.csv'
+
+    with graph.as_default():
+        src_vocab_table, tgt_vocab_table = data_pipeline.make_vocab_tables(src_vocab_loc, tgt_vocab_loc)
+
+        src_data = tf.data.TextLineDataset(src_loc)
+        tgt_data = tf.data.TextLineDataset(tgt_loc)
+        weight_data = tf.data.TextLineDataset(weights_loc)
+
+        iterator = data_pipeline.get_iterator(hparams,
+                                              src_data, tgt_data, weight_data,
+                                              src_vocab_table, tgt_vocab_table, infer=True)
+
+        model = models.NMTModel(
+            hparams,
+            iterator=iterator,
+            mode='INFER',
+            src_vocab_table=src_vocab_table,
+            tgt_vocab_table=tgt_vocab_table)
+
+    return Eval2Model(
+        graph=graph,
+        model=model,
+        iterator=iterator)
+
+
+
+#### INFER MODEL --> VALIDATION MODEL ####
+
 class InferModel(collections.namedtuple("ValidateModel", ("graph", "model", "iterator"))):
     pass
 
@@ -115,7 +160,7 @@ def create_infer_model(hparams):
 
         iterator = data_pipeline.get_iterator(hparams,
                                               src_data, tgt_data, weight_data,
-                                              src_vocab_table, tgt_vocab_table)
+                                              src_vocab_table, tgt_vocab_table, infer=True)
 
         model = models.NMTModel(
             hparams,
@@ -129,6 +174,8 @@ def create_infer_model(hparams):
         model=model,
         iterator=iterator)
 
+
+#### PREDICTION MODEL ####
 
 class PredModel(collections.namedtuple("PredModel", ("graph", "model", "iterator", "src_placeholder"))):
     pass

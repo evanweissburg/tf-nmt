@@ -33,13 +33,14 @@ def get_infer_iterator(hparams, src_data, src_vocab_table):
     return batched_data.make_initializable_iterator()
 
 
-def get_iterator(hparams, src_data, tgt_data, weight_data, src_vocab_table, tgt_vocab_table):
+def get_iterator(hparams, src_data, tgt_data, weight_data, src_vocab_table, tgt_vocab_table, infer = False):
     src_eos_id = tf.cast(src_vocab_table.lookup(tf.constant(hparams.src_eos)), tf.int32)
     tgt_sos_id = tf.cast(tgt_vocab_table.lookup(tf.constant(hparams.tgt_sos)), tf.int32)
     tgt_eos_id = tf.cast(tgt_vocab_table.lookup(tf.constant(hparams.tgt_eos)), tf.int32)
 
     dataset = tf.data.Dataset.zip((src_data, tgt_data, weight_data))
-    dataset = dataset.shuffle(hparams.shuffle_buffer_size, reshuffle_each_iteration=True)
+    if not infer:
+        dataset = dataset.shuffle(hparams.shuffle_buffer_size, reshuffle_each_iteration=True)
 
     dataset = dataset.map(lambda src, tgt, weights:
                           (tf.string_split([src], delimiter=',').values,
