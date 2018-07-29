@@ -14,18 +14,18 @@ def clear_previous_run(hparams):
 
 def download_raw_data(data_dir):
     urllib.request.urlretrieve('https://cdn.rcsb.org/etl/kabschSander/ss.txt.gz', filename='ss.txt.gz')
-    urllib.request.urlretrieve('http://dunbrack.fccc.edu/Guoli/culledpdb_hh/cullpdb_pc90_res100_R100_inclNOTXRAY_inclCA_d180707_chains46590.gz', filename='cull.txt.gz')
+    #urllib.request.urlretrieve('http://dunbrack.fccc.edu/Guoli/culledpdb_hh/cullpdb_pc30_res3.0_R1.0_d180719_chains17280.gz', filename='cull.txt.gz')
 
     with gzip.open('ss.txt.gz', 'rb') as inF:
         with open(data_dir+'ss.txt', 'wb+') as outF:
             outF.write(inF.read())
 
-    with gzip.open('cull.txt.gz', 'rb') as inF:
-        with open(data_dir+'cull.txt', 'wb+') as outF:
-            outF.write(inF.read())
+    #with gzip.open('cull.txt.gz', 'rb') as inF:
+        #with open(data_dir+'cull.txt', 'wb+') as outF:
+            #outF.write(inF.read())
 
     os.remove('ss.txt.gz')
-    os.remove('cull.txt.gz')
+    #os.remove('cull.txt.gz')
 
 
 class SeqNotFound(Exception):
@@ -33,6 +33,7 @@ class SeqNotFound(Exception):
 
 
 def make_primary_secondary(data_dir, max_size, max_len, max_weight, delta_weight, min_weight):
+    input("pause")
     with open(os.path.join(data_dir, 'cull.txt')) as cull_file:
         with open(os.path.join(data_dir, 'ss.txt')) as file:
             sequences = []
@@ -127,17 +128,26 @@ def make_vocab_files(data_dir, src_eos, tgt_sos, tgt_eos):
         for char in secondary:
             file.write(char + '\n')
 
+    return len(primary), len(secondary)
+
 
 def split_dataset(data_dir, test_split_rate, validate_split_rate):
     def do_split(reader, train_w, test_w, validate_w):
+        num_train = 0
+        num_test = 0
+        num_validate = 0
         for i, seq in enumerate(reader):
             i %= 100
             if i < 100 - validate_split_rate - test_split_rate:
                 train_w.writerow(seq)
+                num_train += 1
             elif i < 100 - validate_split_rate:
                 test_w.writerow(seq)
+                num_test += 1
             else:
                 validate_w.writerow(seq)
+                num_validate += 1
+        return num_train, num_test, num_validate
 
     with open(data_dir+'primary.csv', 'r+') as file:
         with open(data_dir+'train/primary_train.csv', 'w+', newline='') as train:
@@ -155,7 +165,7 @@ def split_dataset(data_dir, test_split_rate, validate_split_rate):
         with open(data_dir+'train/weights_train.csv', 'w+', newline='') as train:
             with open(data_dir+'test/weights_test.csv', 'w+', newline='') as test:
                 with open(data_dir+'validate/weights_validate.csv', 'w+', newline='') as validate:
-                    do_split(csv.reader(file), csv.writer(train), csv.writer(test), csv.writer(validate))
+                    return do_split(csv.reader(file), csv.writer(train), csv.writer(test), csv.writer(validate))
 
 
 def fragment_datasets(data_dir, fragment_radius, fragment_jump):
@@ -174,21 +184,25 @@ def fragment_datasets(data_dir, fragment_radius, fragment_jump):
                                     secondary_frag_w = csv.writer(secondary_frag)
                                     weights_frag_w = csv.writer(weights_frag)
                                     frag_lookup_w = csv.writer(frag_lookup)
+                                    frag_count = 0
                                     for prim in primary_r:
                                         sec = next(secondary_r)
                                         wei = next(weights_r)
                                         num_frags = len(prim)//fragment_jump
                                         for j in range(num_frags):
                                             start = max(0, j-fragment_radius)
-                                            end = min(j+fragment_radius, len(prim))
+                                            end = min(j+fragment_radius+1, len(prim))
                                             primary_frag_w.writerow(prim[start:end])
                                             secondary_frag_w.writerow(sec[start:end])
                                             weights_frag_w.writerow(wei[start:end])
                                         frag_lookup_w.writerow([num_frags])
+                                        frag_count += num_frags
+        return frag_count
 
-    fragment_file('train')
-    fragment_file('test')
-    fragment_file('validate')
+    num_train_frags = fragment_file('train')
+    num_test_frags = fragment_file('test')
+    num_validate_frags = fragment_file('validate')
+    return num_train_frags, num_test_frags, num_validate_frags
 
 
 def prep_nmt_dataset(hparams):
@@ -213,14 +227,16 @@ def prep_nmt_dataset(hparams):
 
     print('Using {} out of {} total proteins. Generating vocab files.'.format(num_prots, num_raw))
 
-    make_vocab_files(data_dir=hparams.data_dir, src_eos=hparams.src_eos, tgt_sos=hparams.tgt_sos, tgt_eos=hparams.tgt_eos)
+    primary_vocab, secondary_vocab = make_vocab_files(data_dir=hparams.data_dir, src_eos=hparams.src_eos, tgt_sos=hparams.tgt_sos, tgt_eos=hparams.tgt_eos)
 
-    print('Splitting base dataset into train/test/validate.')
+    print('Found a primary vocabulary of {} and a secondary vocabulary of {}. Splitting base dataset into train/test/validate.'.format(primary_vocab, secondary_vocab))
 
-    split_dataset(data_dir=hparams.data_dir, test_split_rate=hparams.test_split_rate, validate_split_rate=hparams.validate_split_rate)
+    num_train, num_test, num_validate = split_dataset(data_dir=hparams.data_dir, test_split_rate=hparams.test_split_rate, validate_split_rate=hparams.validate_split_rate)
 
-    print('Fragmenting datasets.')
+    print('Created train ({}), test ({}), and validate ({}) datasets. Fragmenting datasets.'.format(num_train, num_test, num_validate))
 
-    fragment_datasets(data_dir=hparams.data_dir, fragment_radius=hparams.fragment_radius, fragment_jump=hparams.fragment_jump)
+    num_train, num_test, num_validate = fragment_datasets(data_dir=hparams.data_dir, fragment_radius=hparams.fragment_radius, fragment_jump=hparams.fragment_jump)
 
-    print('Files created successfully.')
+    print('Fragmented train ({}), test ({}), and validate ({}) datasets.'.format(num_train, num_test, num_validate))
+
+    print('Dataset generation complete.')

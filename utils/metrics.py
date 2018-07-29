@@ -1,7 +1,6 @@
 import numpy as np
 import random
 from collections import Counter
-import csv
 
 
 def q8_infer_accuracy(preds, targets):
@@ -20,15 +19,15 @@ def q8_infer_accuracy(preds, targets):
 
 
 def q3_infer_accuracy(preds, targets):
-    helix = [5, 8, 9]
-    strand = [6, 7]
-    loops = [2, 3, 4]
+    helix = [3, 8]
+    sheet = [5, 7]
+    loops = [2, 4, 6, 9]
 
     def replace_q3(seq):
         for i, char in enumerate(seq):
             if char in helix:
                 seq[i] = 2
-            elif char in strand:
+            elif char in sheet:
                 seq[i] = 3
             elif char in loops:
                 seq[i] = 4
@@ -58,45 +57,6 @@ def update_standard_deviation(old_total, old_squaresum, n, point):
     return total, squaresum, stdev
 
 
-def print_common_mistake(preds, src, tgts=None):
-    mistakes = []
-    mistake_freq = []
-    for i in range(len(preds)):
-        for j in range(len(preds[i])):
-            if tgts[i][j] != src[i][j]:
-                if not src[i][j] in mistakes:
-                    mistakes.append(src[i][j])
-                    mistake_freq.append(1)
-                else:
-                    mistake_freq[mistakes.index(src[i][j])] += 1
-    max = 0
-    first = 0
-    second = 0
-    third = 0
-    for k in range(len(mistakes)):
-        if mistake_freq[k] > max:
-            max = mistake_freq[k]
-            third = second
-            second = first
-            first = mistakes[k]
-    print('Most common sources of error: {}, {}, {}'.format(first, second, third))
-
-
-def get_confusion(preds, tgts):
-    confusion = [[0 for x in range(10)] for y in range(10)]     # initialize confusion array
-    total = [0 for x in range(10)]
-    for i in range(len(preds)):                                 # index over proteins
-        print(tgts[i])
-        for j in range(len(preds[i])):                          # index over ss elements
-            if tgts[i][j] > -1 and preds[i][j] > -1:
-                confusion[tgts[i][j]][preds[i][j]] += 1         # increment relevant matrix element
-                total[tgts[i][j]] += 1
-                if tgts[i][j] == 1 and preds[i][j] == 1:
-                    break
-
-    return confusion, total
-
-
 def find_uniques(strings, max_len, sampling_len):
     random.seed(0)
 
@@ -114,40 +74,47 @@ def find_uniques(strings, max_len, sampling_len):
     return uniques
 
 
-def edit_distance(a, b):
-    m = len(a)
-    n = len(b)
-    edit_dist = [[0 for x in range(n+1)] for x in range(m+1)]
-    for i in range(m+1):
-        for j in range(n+1):
-            if i == 0:
-                edit_dist[i][j] = j
-            elif j == 0:
-                edit_dist[i][j] = i
-            elif a[i-1] == b[j-1]:
-                edit_dist[i][j] = edit_dist[i-1][j-1]
-            else:
-                edit_dist[i][j] = 1 + min(edit_dist[i][j-1],
-                                          edit_dist[i-1][j],
-                                          edit_dist[i-1][j-1])
+def stitch(radius, frags):
+    candidates = list()
+    for _ in frags:
+        candidates.append(list())
+    for i, frag in enumerate(frags):
+        if i < radius:
+            for j in range(i + radius):
+                candidates[j].append(frag[j])
+        elif i >= len(frags) - radius:
+            for j in range(radius + len(frags) - i):
+                candidates[i + j - radius].append(frag[j])
+        else:
+            for j in range(radius * 2):
+                candidates[i + j - radius].append(frag[j])
 
-    return edit_dist[m][n] / ((m+n)/2)
+    stitched = list()
+    for candidate in candidates:
+        candidate = [1 if n == -1 else n for n in candidate]
+        stitched.append(np.argmax(np.bincount(candidate)))
+    return stitched
 
 
-def record_edit_dists(data_dir):
-    seqs = list()
-    with open(data_dir+'primary.csv', 'r+') as file:
-        reader = csv.reader(file)
-        for row in reader:
-            seqs.append(row)
+def do_stitching(src, tgts, ids, radius, test_frags, test_frag_num):
+    new_src = list()
+    new_tgts = list()
+    new_ids = list()
 
-    n = len(seqs)
-    with open(data_dir+'edit_dists.txt', 'w+', newline='') as out:
-        for i in range(n):
-            min_edit_dist = 10
-            for j in range(n):
-                if i == j:
-                    continue
-                min_edit_dist = min(min_edit_dist, edit_distance(seqs[i], seqs[j]))
-            out.write(str(min_edit_dist) + '\n')
-            print('{}: {}'.format(i, min_edit_dist))
+    i = 0
+    while i < len(ids):
+        print('i is {}'.format(i))
+        j = 0
+        k = test_frag_num + i
+        while k > 0:
+            k -= test_frags[j]
+            j += 1
+        if k == 0 and len(ids) - i >= test_frags[j]: # Start of protein and all needed frags are present
+            new_src.append(stitch(radius, src[i:i+test_frags[j]]))
+            new_tgts.append(stitch(radius, tgts[i:i+test_frags[j]]))
+            new_ids.append(stitch(radius, ids[i:i+test_frags[j]]))
+            i += test_frags[j]
+        else:
+            i += 1
+    test_frag_num += i
+    return new_src, new_tgts, new_ids, test_frag_num

@@ -59,11 +59,11 @@ def create_train_model(hparams):
 
 #### EVAL MODEL --> TESTING MODEL ####
 
-class EvalModel(collections.namedtuple("EvalModel", ("graph", "model", "iterator"))):
+class TestModel(collections.namedtuple("TestModel", ("graph", "model", "iterator"))):
     pass
 
 
-def create_eval_model(hparams):
+def create_test_model(hparams):
     graph = tf.Graph()
 
     src_vocab_loc = hparams.data_dir + 'primary_vocab.txt'
@@ -90,7 +90,7 @@ def create_eval_model(hparams):
             src_vocab_table=src_vocab_table,
             tgt_vocab_table=tgt_vocab_table)
 
-    return EvalModel(
+    return TestModel(
         graph=graph,
         model=model,
         iterator=iterator)
@@ -98,11 +98,11 @@ def create_eval_model(hparams):
 
 #### EVAL2 MODEL --> TESTING 2 MODEL ####
 
-class Eval2Model(collections.namedtuple("Eval2Model", ("graph", "model", "iterator"))):
+class Test2Model(collections.namedtuple("Test2Model", ("graph", "model", "iterator"))):
     pass
 
 
-def create_eval2_model(hparams):
+def create_test2_model(hparams):
     graph = tf.Graph()
 
     src_vocab_loc = hparams.data_dir + 'primary_vocab.txt'
@@ -129,7 +129,7 @@ def create_eval2_model(hparams):
             src_vocab_table=src_vocab_table,
             tgt_vocab_table=tgt_vocab_table)
 
-    return Eval2Model(
+    return Test2Model(
         graph=graph,
         model=model,
         iterator=iterator)
@@ -138,11 +138,11 @@ def create_eval2_model(hparams):
 
 #### INFER MODEL --> VALIDATION MODEL ####
 
-class InferModel(collections.namedtuple("ValidateModel", ("graph", "model", "iterator"))):
+class ValidateModel(collections.namedtuple("ValidateModel", ("graph", "model", "iterator"))):
     pass
 
 
-def create_infer_model(hparams):
+def create_validate_model(hparams):
     graph = tf.Graph()
 
     src_vocab_loc = hparams.data_dir + 'primary_vocab.txt'
@@ -169,7 +169,7 @@ def create_infer_model(hparams):
             src_vocab_table=src_vocab_table,
             tgt_vocab_table=tgt_vocab_table)
 
-    return InferModel(
+    return ValidateModel(
         graph=graph,
         model=model,
         iterator=iterator)

@@ -22,185 +22,128 @@ preprocess.clear_previous_run(hparams)
 # INITIALIZE MODELS
 
 train_model = model_builder.create_train_model(hparams)
-eval_model = model_builder.create_eval_model(hparams)
-eval2_model = model_builder.create_eval2_model(hparams)
-infer_model = model_builder.create_infer_model(hparams)
+test_model = model_builder.create_test_model(hparams)
+test2_model = model_builder.create_test2_model(hparams)
+validate_model = model_builder.create_validate_model(hparams)
 pred_model = model_builder.create_pred_model(hparams)
 
 # INITALIZE SESSIONS
 
 train_sess = tf.Session(graph=train_model.graph)
-eval_sess = tf.Session(graph=eval_model.graph)
-eval2_sess = tf.Session(graph=eval2_model.graph)
-infer_sess = tf.Session(graph=infer_model.graph)
+test_sess = tf.Session(graph=test_model.graph)
+test2_sess = tf.Session(graph=test2_model.graph)
+validate_sess = tf.Session(graph=validate_model.graph)
 pred_sess = tf.Session(graph=pred_model.graph)
 
-# STITCHING LOGIC
-
-def stitch(frags):
-    candidates = list()
-    for _ in frags:
-        candidates.append(list())
-    for i, frag in enumerate(frags):
-        if i < hparams.fragment_radius:
-            for j in range(i + hparams.fragment_radius):
-                candidates[j].append(frag[j])
-        elif i >= len(frags) - hparams.fragment_radius:
-            for j in range(hparams.fragment_radius + len(frags) - i):
-                candidates[i + j - hparams.fragment_radius].append(frag[j])
-        else:
-            for j in range(hparams.fragment_radius * 2):
-                candidates[i + j - hparams.fragment_radius].append(frag[j])
-
-    stitched = list()
-    for candidate in candidates:
-        print("candidate: {}".format(candidate))
-        stitched.append(np.argmax(np.bincount(candidate)))
-    return stitched
-
 # TRAIN LOGIC
+
 
 def train_log(global_step):
     print('TRAIN STEP >>> @ Train Step {}: Completed with loss {}'.format(global_step, loss))
 
     summary_writer = tf.summary.FileWriter(os.path.join(hparams.model_dir, 'train'), train_model.graph)
-    loss_summary = tf.Summary(value=[tf.Summary.Value(tag='loss', simple_value=loss)])
-    summary_writer.add_summary(loss_summary, global_step)
+    summary_writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='loss', simple_value=loss)]), global_step)
     summary_writer.close()
 
-# EVAL (TEST 1) LOGIC
+# TEST 1 LOGIC
 
-def eval_step_log():
-    with eval_model.graph.as_default():
-        loaded_eval_model, global_step = model_builder.create_or_load_model(hparams, eval_model.model, eval_sess)
+def test_step_log():
+    with test_model.graph.as_default():
+        loaded_test_model, global_step = model_builder.create_or_load_model(hparams, test_model.model, test_sess)
 
-    eval_sess.run(eval_model.iterator.initializer)
-    loss, src, tgts, ids = loaded_eval_model.eval(eval_sess)
+    test_sess.run(test_model.iterator.initializer)
+    loss, src, tgts, ids = loaded_test_model.eval(test_sess)
 
-    io.print_example(ids, src, tgts, hparams.eval_max_printouts)
-    print('EVAL STEP >>> @ Train Step {}: Completed with loss {}'.format(global_step, loss))
-    print('Q3: {}'.format(np.round(metrics.q3_infer_accuracy(preds=ids, targets=tgts), 4) * 100))
-    print('Q8: {}'.format(np.round(metrics.q8_infer_accuracy(preds=ids, targets=tgts), 4) * 100))
+    io.print_example(ids, src, tgts, hparams.test_max_printouts)
+    print('TEST STEP >>> @ Train Step {}: Completed with loss {}'.format(global_step, loss))
+    q8 = np.round(metrics.q8_infer_accuracy(preds=ids, targets=tgts), 4) * 100
+    q3 = np.round(metrics.q3_infer_accuracy(preds=ids, targets=tgts), 4) * 100
+    print('Q8: {}'.format(q8))
+    print('Q3: {}'.format(q3))
 
-    summary_writer = tf.summary.FileWriter(os.path.join(hparams.model_dir, 'eval'), eval_model.graph)
-    loss_summary = tf.Summary(value=[tf.Summary.Value(tag='loss', simple_value=loss)])
-    summary_writer.add_summary(loss_summary, global_step)
+    summary_writer = tf.summary.FileWriter(os.path.join(hparams.model_dir, 'test'), test_model.graph)
+    summary_writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='loss', simple_value=loss)]), global_step)
+    summary_writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='q8', simple_value=q8)]), global_step)
+    summary_writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='q3', simple_value=q3)]), global_step)
     summary_writer.close()
 
-# EVAL2 (TEST 2) LOGIC
+# TEST 2 LOGIC
 
-# Load frag lengths
 test_frag_num = 0
-test_frags = list();
+test_frags = list()
 with open(hparams.data_dir + "test/test_frag.csv", 'r+') as test_frag_file:
     frag_reader = csv.reader(test_frag_file)
     for frag_len in frag_reader:
         test_frags.append(int(frag_len[0]))
 
-def eval2_step_log(test_frag_num):
-    with eval2_model.graph.as_default():
-        loaded_eval2_model, global_step = model_builder.create_or_load_model(hparams, eval2_model.model, eval2_sess)
 
-    eval2_sess.run(eval2_model.iterator.initializer)
-    src, tgts, ids = loaded_eval2_model.infer(eval2_sess)
+def test2_step_log(test_frag_num):
+    with test2_model.graph.as_default():
+        loaded_test2_model, global_step = model_builder.create_or_load_model(hparams, test2_model.model, test2_sess)
+
+    test2_sess.run(test2_model.iterator.initializer)
+    src, tgts, ids = loaded_test2_model.infer(test2_sess)
     if hparams.beam_search:
         ids = ids.transpose([2, 0, 1])   # Change from [batch_size, time_steps, beam_width] to [beam_width, batch_size, time_steps]
         ids = ids[0]  # Only use top 1 prediction from top K
 
-    new_src = list()
-    new_tgts = list()
-    new_ids = list()
+    print(src)
+    print(tgts)
+    print(ids)
 
-    i = 0
-    while i < len(ids):
-        j = 0
-        k = test_frag_num + i
-        while k > 0:
-            k -= test_frags[j]
-            j += 1
-        if k == 0 and len(ids) - i >= test_frags[j]: # Start of protein and all needed frags are present
-            new_src.append(stitch(src[i:i+test_frags[j]]))
-            new_tgts.append(stitch(tgts[i:i+test_frags[j]]))
-            new_ids.append(stitch(ids[i:i+test_frags[j]]))
-            i += test_frags[j]
-        else:
-            i += 1
-    test_frag_num += i
+    new_src, new_tgts, new_ids, test_frag_num = metrics.do_stitching(src, tgts, ids, hparams.fragment_radius, test_frags, test_frag_num)
 
-    if len(new_src) > 0:
-        src = new_src
-        tgts = new_tgts
-        ids = new_ids
+    print(new_src)
+    print(new_tgts)
+    print(new_ids)
 
-    accuracy = np.round(metrics.q8_infer_accuracy(preds=ids, targets=tgts), 4) * 100
-    io.print_example(ids, src, tgts, hparams.infer_max_printouts)
-    print('EVAL2 STEP >>> @ Train Step {}: Completed with {}% correct'.format(global_step, accuracy))
-    print('Q3: {}'.format(np.round(metrics.q3_infer_accuracy(preds=ids, targets=tgts), 4) * 100))
+    print('TEST2 STEP >>> @ Train Step {}'.format(global_step))
+    io.print_example(new_ids, new_src, new_tgts, hparams.infer_max_printouts)
+    fragq8 = np.round(metrics.q8_infer_accuracy(preds=ids, targets=tgts), 4) * 100
+    fragq3 = np.round(metrics.q3_infer_accuracy(preds=ids, targets=tgts), 4) * 100
+    q8 = np.round(metrics.q8_infer_accuracy(preds=new_ids, targets=new_tgts), 4) * 100
+    q3 = np.round(metrics.q3_infer_accuracy(preds=new_ids, targets=new_tgts), 4) * 100
+    print('FragQ8: {}'.format(fragq8))
+    print('FragQ3: {}'.format(fragq3))
+    print('Q8: {}'.format(q8))
+    print('Q3: {}'.format(q3))
 
-    summary_writer = tf.summary.FileWriter(os.path.join(hparams.model_dir, 'eval2'), eval2_model.graph)
-    loss_summary = tf.Summary(value=[tf.Summary.Value(tag='accuracy', simple_value=accuracy)])
-    summary_writer.add_summary(loss_summary, global_step)
+    summary_writer = tf.summary.FileWriter(os.path.join(hparams.model_dir, 'test2'), test2_model.graph)
+    summary_writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='fragq8', simple_value=q8)]), global_step)
+    summary_writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='fragq3', simple_value=q3)]), global_step)
+    summary_writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='q8', simple_value=q8)]), global_step)
+    summary_writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='q3', simple_value=q3)]), global_step)
     summary_writer.close()
 
-    return accuracy, test_frag_num
+    return test_frag_num
 
 
-# INFER (VALIDATE) LOGIC
+# VALIDATE LOGIC
 
-# Load frag lengths
 validate_frag_num = 0
-infer_frags = list();
-with open(hparams.data_dir + "validate/validate_frag.csv", 'r+') as infer_frag_file:
-    frag_reader = csv.reader(infer_frag_file)
+validate_frags = list()
+with open(hparams.data_dir + "validate/validate_frag.csv", 'r+') as validate_frag_file:
+    frag_reader = csv.reader(validate_frag_file)
     for frag_len in frag_reader:
-        infer_frags.append(int(frag_len[0]))
+        validate_frags.append(int(frag_len[0]))
 
-def infer_step_log(validate_frag_num):
-    with infer_model.graph.as_default():
-        loaded_infer_model, global_step = model_builder.create_or_load_model(hparams, infer_model.model, infer_sess)
 
-    infer_sess.run(infer_model.iterator.initializer)
-    src, tgts, ids = loaded_infer_model.infer(infer_sess)
+def validate_step_log(validate_frag_num):
+    with validate_model.graph.as_default():
+        loaded_validate_model, global_step = model_builder.create_or_load_model(hparams, validate_model.model, validate_sess)
+
+    validate_sess.run(validate_model.iterator.initializer)
+    src, tgts, ids = loaded_validate_model.infer(validate_sess)
     if hparams.beam_search:
         ids = ids.transpose([2, 0, 1])   # Change from [batch_size, time_steps, beam_width] to [beam_width, batch_size, time_steps]
         ids = ids[0]  # Only use top 1 prediction from top K
 
-    new_src = list()
-    new_tgts = list()
-    new_ids = list()
+    new_src, new_tgts, new_ids, validate_frag_num = metrics.do_stitching(src, tgts, ids, hparams.fragment_radius, validate_frags, validate_frag_num)
 
-    i = 0
-    while i < len(ids):
-        j = 0
-        k = validate_frag_num + i
-        while k > 0:
-            k -= infer_frags[j]
-            j += 1
-        if k == 0 and len(ids) - i >= infer_frags[j]: # Start of protein and all needed frags are present
-            new_src.append(stitch(src[i:i+infer_frags[j]]))
-            new_tgts.append(stitch(tgts[i:i+infer_frags[j]]))
-            new_ids.append(stitch(ids[i:i+infer_frags[j]]))
-            i += infer_frags[j]
-        else:
-            i += 1
-    validate_frag_num += i
+    # do something or other
 
-    if len(new_src) > 0:
-        src = new_src
-        tgts = new_tgts
-        ids = new_ids
+    return validate_frag_num
 
-    accuracy = np.round(metrics.q8_infer_accuracy(preds=ids, targets=tgts), 4) * 100
-    io.print_example(ids, src, tgts, hparams.infer_max_printouts)
-    print('INFER STEP >>> @ Train Step {}: Completed with {}% correct'.format(global_step, accuracy))
-    print('Q3: {}'.format(np.round(metrics.q3_infer_accuracy(preds=ids, targets=tgts), 4) * 100))
-
-    summary_writer = tf.summary.FileWriter(os.path.join(hparams.model_dir, 'infer'), infer_model.graph)
-    loss_summary = tf.Summary(value=[tf.Summary.Value(tag='accuracy', simple_value=accuracy)])
-    summary_writer.add_summary(loss_summary, global_step)
-    summary_writer.close()
-
-    return accuracy, validate_frag_num
 
 # LOAD TRAIN MODEL
 
@@ -222,17 +165,17 @@ while global_step < hparams.num_train_steps:
         if global_step % hparams.train_log_freq == 0:
             train_log(global_step)
 
-        if global_step % hparams.eval_log_freq == 0:
+        if global_step % hparams.test_log_freq == 0:
             loaded_train_model.saver.save(train_sess, hparams.model_dir, global_step)
-            eval_step_log()
+            test_step_log()
 
-        if global_step % hparams.eval2_log_freq == 0:
+        if global_step % hparams.test2_log_freq == 0:
             loaded_train_model.saver.save(train_sess, hparams.model_dir, global_step)
-            _, validate_frag_num = eval2_step_log(test_frag_num)
+            test_frag_num = test2_step_log(test_frag_num)
 
-        if global_step % hparams.infer_log_freq == 0:
+        if global_step % hparams.validate_log_freq == 0:
             loaded_train_model.saver.save(train_sess, hparams.model_dir, global_step)
-            _, validate_frag_num = infer_step_log(validate_frag_num)
+            validate_frag_num = validate_step_log(validate_frag_num)
 
     except tf.errors.OutOfRangeError:
         print('Epoch {} completed.'.format(epoch))

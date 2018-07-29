@@ -3,34 +3,34 @@ import os
 
 
 def get_hparams():
-    project_dir = '/Users/ianbulovic/IdeaProjects/tf-nmt/'
+    project_dir = '/media/nave01314/Storage/IdeaProjects/tf-nmt/'
 
     hparams = tf.contrib.training.HParams(model_dir=os.path.join(project_dir, 'ckpts/'),
-                                          data_dir=os.path.join('/Users/ianbulovic/IdeaProjects/tf-nmt/', 'dataset/'),
+                                          data_dir=os.path.join(project_dir, 'dataset/'),
 
                                           test_split_rate=10,
                                           validate_split_rate=5,
 
-                                          train_log_freq=5,
-                                          eval_log_freq=50,
-                                          eval2_log_freq=1,
-                                          infer_log_freq=10000000,
-                                          eval_max_printouts=5,
+                                          train_log_freq=10,
+                                          test_log_freq=50,
+                                          test2_log_freq=100,
+                                          validate_log_freq=10000000,
+                                          test_max_printouts=5,
                                           infer_max_printouts=10,
 
-                                          num_train_steps=1000,
-                                          l_rate=0.001,
-                                          num_units=300,
-                                          batch_size=500,
+                                          num_train_steps=400000,
+                                          l_rate=0.0001,
+                                          num_units=150,
+                                          batch_size=100,
                                           max_gradient_norm=5.0,
                                           attention=True,
                                           beam_search=True,
                                           beam_width=10,                      # Num top K preds to keep at timestep
-                                          length_penalty_weight=0.0,          # Penalize length (disabled with 0.0)
+                                          length_penalty_weight=5.0,          # Penalize length (disabled with 0.0)
                                           bidir_encoder=True,
                                           num_layers=2,                       # Must be even if bidirectional is enabled
 
-                                          src_vsize=26,                       # FASTA + eos - only used for embedding
+                                          src_vsize=25,                       # FASTA + eos - only used for embedding
                                           tgt_vsize=10,                       # 8 + sos + eos - only used for embedding
                                           src_emsize=15,
                                           tgt_emsize=10,
@@ -49,7 +49,7 @@ def get_hparams():
                                           delta_weight=0.3,
                                           min_weight=0.1,
 
-                                          fragment_radius=10,
+                                          fragment_radius=6,
                                           fragment_jump=1
                                           )
 
