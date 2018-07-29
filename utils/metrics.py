@@ -24,13 +24,13 @@ def q3_infer_accuracy(preds, targets):
     loops = [2, 4, 6, 9]
 
     def replace_q3(seq):
-        for i, char in enumerate(seq):
+        for j, char in enumerate(seq):
             if char in helix:
-                seq[i] = 2
+                seq[j] = 2
             elif char in sheet:
-                seq[i] = 3
+                seq[j] = 3
             elif char in loops:
-                seq[i] = 4
+                seq[j] = 4
 
     correct = 0
     total = 0
@@ -50,13 +50,6 @@ def q3_infer_accuracy(preds, targets):
     return correct/total
 
 
-def update_standard_deviation(old_total, old_squaresum, n, point):
-    total = old_total + point
-    squaresum = old_squaresum + (point ** 2)
-    stdev = np.sqrt((squaresum / n) - ((total / n) ** 2))
-    return total, squaresum, stdev
-
-
 def find_uniques(strings, max_len, sampling_len):
     random.seed(0)
 
@@ -65,7 +58,6 @@ def find_uniques(strings, max_len, sampling_len):
 
     indices = random.sample(range(max_len), sampling_len)
     hashes = [bit_sampling(string, indices) for string in strings]
-
     counter = Counter(hashes)
     uniques = list()
     for most_common, count in counter.most_common():
@@ -103,7 +95,6 @@ def do_stitching(src, tgts, ids, radius, test_frags, test_frag_num):
 
     i = 0
     while i < len(ids):
-        print('i is {}'.format(i))
         j = 0
         k = test_frag_num + i
         while k > 0:

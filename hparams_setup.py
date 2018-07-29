@@ -14,9 +14,8 @@ def get_hparams():
                                           train_log_freq=10,
                                           test_log_freq=50,
                                           test2_log_freq=100,
-                                          validate_log_freq=10000000,
                                           test_max_printouts=5,
-                                          infer_max_printouts=10,
+                                          test2_max_printouts=5,
 
                                           num_train_steps=400000,
                                           l_rate=0.0001,
