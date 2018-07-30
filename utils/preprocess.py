@@ -235,7 +235,7 @@ def prep_nmt_dataset(hparams):
 
     print('Created train ({}), test ({}), and validate ({}) datasets. Fragmenting datasets.'.format(num_train, num_test, num_validate))
 
-    num_train, num_test, num_validate = fragment_datasets(data_dir=hparams.data_dir, fragment_radius=hparams.fragment_radius, fragment_jump=hparams.fragment_jump)
+    num_train, num_test, num_validate = fragment_datasets(data_dir=hparams.data_dir, fragment_radius=hparams.fragment_radius)
 
     print('Fragmented train ({}), test ({}), and validate ({}) datasets.'.format(num_train, num_test, num_validate))
 

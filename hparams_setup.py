@@ -17,7 +17,7 @@ def get_hparams():
                                           test_max_printouts=5,
                                           test2_max_printouts=5,
 
-                                          num_train_steps=400000,
+                                          num_train_steps=80000,
                                           l_rate=0.0001,
                                           num_units=150,
                                           batch_size=500,
@@ -25,7 +25,7 @@ def get_hparams():
                                           attention=True,
                                           beam_search=True,
                                           beam_width=10,                      # Num top K preds to keep at timestep
-                                          length_penalty_weight=5.0,          # Penalize length (disabled with 0.0)
+                                          length_penalty_weight=0.0,          # Penalize length (disabled with 0.0)
                                           bidir_encoder=True,
                                           num_layers=2,                       # Must be even if bidirectional is enabled
 

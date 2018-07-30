@@ -69,9 +69,9 @@ def get_iterator(hparams, src_data, tgt_data, weight_data, src_vocab_table, tgt_
     if stitching:
         dataset = dataset.take(1).flat_map(fragment)
         dataset = dataset.map(lambda src, tgt, weights:
-                              (tf.transpose(tf.gather(src, tf.where(tf.not_equal(src, 0))))[0],
-                               tf.transpose(tf.gather(tgt, tf.where(tf.not_equal(src, 0))))[0],
-                               tf.transpose(tf.gather(weights, tf.where(tf.not_equal(src, 0))))[0]))
+                              (tf.boolean_mask(src, tf.not_equal(src, 0)),
+                               tf.boolean_mask(tgt, tf.not_equal(src, 0)),
+                               tf.boolean_mask(weights, tf.not_equal(src, 0))))
 
     dataset = dataset.map(lambda src, tgt, weights:
                           (tf.concat((src, [src_eos_id]), axis=0),

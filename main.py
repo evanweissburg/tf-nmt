@@ -16,7 +16,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 hparams = hparams_setup.get_hparams()
 
 preprocess.clear_previous_run(hparams)
-#preprocess.prep_nmt_dataset(hparams)
+preprocess.prep_nmt_dataset(hparams)
 
 
 # INITIALIZE MODELS & SESSIONS
@@ -35,12 +35,14 @@ pred_sess = tf.Session(graph=pred_model.graph)
 
 # DEFINE MODEL STEPS & LOGGING
 
+
 def train_log(global_step):
     print('TRAIN STEP >>> @ Train Step {}: Completed with loss {}'.format(global_step, loss))
 
     summary_writer = tf.summary.FileWriter(os.path.join(hparams.model_dir, 'train'), train_model.graph)
     summary_writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='loss', simple_value=loss)]), global_step)
     summary_writer.close()
+
 
 def test_step_log():
     with test_model.graph.as_default():
@@ -62,15 +64,8 @@ def test_step_log():
     summary_writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='q3', simple_value=q3)]), global_step)
     summary_writer.close()
 
-test_frag_num = 0
-test_frags = list()
-with open(hparams.data_dir + "test/test_frag.csv", 'r+') as test_frag_file:
-    frag_reader = csv.reader(test_frag_file)
-    for frag_len in frag_reader:
-        test_frags.append(int(frag_len[0]))
 
-
-def test2_step_log(test_frag_num):
+def test2_step_log():
     with test2_model.graph.as_default():
         loaded_test2_model, global_step = model_builder.create_or_load_model(hparams, test2_model.model, test2_sess)
 
@@ -80,35 +75,25 @@ def test2_step_log(test_frag_num):
         ids = ids.transpose([2, 0, 1])   # Change from [batch_size, time_steps, beam_width] to [beam_width, batch_size, time_steps]
         ids = ids[0]  # Only use top 1 prediction from top K
 
-    print(src)
-    print(tgts)
-    print(ids)
-
-    new_src, new_tgts, new_ids, test_frag_num = metrics.stitch(src, tgts, ids, hparams.fragment_radius, test_frags, test_frag_num)
-
-    print(new_src)
-    print(new_tgts)
-    print(new_ids)
+    new_src, new_tgts, new_ids = src, tgts, ids #metrics.stitch(src, tgts, ids, hparams.fragment_radius)
 
     print('TEST2 STEP >>> @ Train Step {}'.format(global_step))
     io.print_example(new_ids, new_src, new_tgts, hparams.test2_max_printouts)
     fragq8 = np.round(metrics.q8_infer_accuracy(preds=ids, targets=tgts), 4) * 100
     fragq3 = np.round(metrics.q3_infer_accuracy(preds=ids, targets=tgts), 4) * 100
-    q8 = np.round(metrics.q8_infer_accuracy(preds=new_ids, targets=new_tgts), 4) * 100
-    q3 = np.round(metrics.q3_infer_accuracy(preds=new_ids, targets=new_tgts), 4) * 100
+    #q8 = np.round(metrics.q8_infer_accuracy(preds=new_ids, targets=new_tgts), 4) * 100
+    #q3 = np.round(metrics.q3_infer_accuracy(preds=new_ids, targets=new_tgts), 4) * 100
     print('FragQ8: {}'.format(fragq8))
     print('FragQ3: {}'.format(fragq3))
-    print('Q8: {}'.format(q8))
-    print('Q3: {}'.format(q3))
+    #print('Q8: {}'.format(q8))
+    #print('Q3: {}'.format(q3))
 
     summary_writer = tf.summary.FileWriter(os.path.join(hparams.model_dir, 'test2'), test2_model.graph)
-    summary_writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='fragq8', simple_value=q8)]), global_step)
-    summary_writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='fragq3', simple_value=q3)]), global_step)
-    summary_writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='q8', simple_value=q8)]), global_step)
-    summary_writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='q3', simple_value=q3)]), global_step)
+    summary_writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='fragq8', simple_value=fragq8)]), global_step)
+    summary_writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='fragq3', simple_value=fragq3)]), global_step)
+    #summary_writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='q8', simple_value=q8)]), global_step)
+    #summary_writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='q3', simple_value=q3)]), global_step)
     summary_writer.close()
-
-    return test_frag_num
 
 
 # LOAD & START TRAINING
@@ -132,7 +117,7 @@ while global_step < hparams.num_train_steps:
 
         if global_step % hparams.test2_log_freq == 0:
             loaded_train_model.saver.save(train_sess, hparams.model_dir, global_step)
-            test_frag_num = test2_step_log(test_frag_num)
+            test2_step_log()
 
     except tf.errors.OutOfRangeError:
         print('Epoch {} completed.'.format(epoch))
@@ -167,14 +152,6 @@ with pred_sess as sess:
 
 # VALIDATE (DO NOT USE)
 
-validate_frag_num = 0
-validate_frags = list()
-with open(hparams.data_dir + "validate/validate_frag.csv", 'r+') as validate_frag_file:
-    frag_reader = csv.reader(validate_frag_file)
-    for frag_len in frag_reader:
-        validate_frags.append(int(frag_len[0]))
-
-
 def validate():
     with validate_model.graph.as_default():
         loaded_validate_model, global_step = model_builder.create_or_load_model(hparams, validate_model.model, validate_sess)
@@ -185,8 +162,6 @@ def validate():
         ids = ids.transpose([2, 0, 1])   # Change from [batch_size, time_steps, beam_width] to [beam_width, batch_size, time_steps]
         ids = ids[0]  # Only use top 1 prediction from top K
 
-    new_src, new_tgts, new_ids, validate_frag_num = metrics.do_stitching(src, tgts, ids, hparams.fragment_radius, validate_frags, validate_frag_num)
+    new_src, new_tgts, new_ids = metrics.stitch(src, tgts, ids, hparams.fragment_radius)
 
     # do something or other
-
-    return validate_frag_num
