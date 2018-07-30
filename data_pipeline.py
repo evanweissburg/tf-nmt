@@ -64,12 +64,14 @@ def get_iterator(hparams, src_data, tgt_data, weight_data, src_vocab_table, tgt_
         tgt *= matrix
         weights *= tf.cast(matrix, tf.float32)
 
-        src = tf.boolean_mask(src, tf.ones_like(src, tf.bool))
-
-        return tf.data.Dataset.from_tensor_slices((src[1:], tgt[1:], weights[1:]))
+        return tf.data.Dataset.from_tensor_slices((src, tgt, weights))
 
     if stitching:
         dataset = dataset.take(1).flat_map(fragment)
+        dataset = dataset.map(lambda src, tgt, weights:
+                              (tf.transpose(tf.gather(src, tf.where(tf.not_equal(src, 0))))[0],
+                               tf.transpose(tf.gather(tgt, tf.where(tf.not_equal(src, 0))))[0],
+                               tf.transpose(tf.gather(weights, tf.where(tf.not_equal(src, 0))))[0]))
 
     dataset = dataset.map(lambda src, tgt, weights:
                           (tf.concat((src, [src_eos_id]), axis=0),
