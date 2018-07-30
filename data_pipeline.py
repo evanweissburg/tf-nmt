@@ -58,7 +58,7 @@ def get_iterator(hparams, src_data, tgt_data, weight_data, src_vocab_table, tgt_
         weights = tf.ones([tf.shape(src)[0], 1], tf.float32) * weights
 
         matrix = tf.ones_like(src, tf.int32)
-        matrix = tf.matrix_band_part(matrix, hparams.fragment_radius-1, hparams.fragment_radius-1)
+        matrix = tf.matrix_band_part(matrix, hparams.fragment_radius, hparams.fragment_radius)
 
         src *= matrix
         tgt *= matrix

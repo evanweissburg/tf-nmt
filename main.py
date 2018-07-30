@@ -16,7 +16,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 hparams = hparams_setup.get_hparams()
 
 preprocess.clear_previous_run(hparams)
-preprocess.prep_nmt_dataset(hparams)
+#preprocess.prep_nmt_dataset(hparams)
 
 
 # INITIALIZE MODELS & SESSIONS
@@ -79,20 +79,20 @@ def test2_step_log():
 
     print('TEST2 STEP >>> @ Train Step {}'.format(global_step))
     io.print_example(new_ids, new_src, new_tgts, hparams.test2_max_printouts)
-    fragq8 = np.round(metrics.q8_infer_accuracy(preds=ids, targets=tgts), 4) * 100
-    fragq3 = np.round(metrics.q3_infer_accuracy(preds=ids, targets=tgts), 4) * 100
-    #q8 = np.round(metrics.q8_infer_accuracy(preds=new_ids, targets=new_tgts), 4) * 100
-    #q3 = np.round(metrics.q3_infer_accuracy(preds=new_ids, targets=new_tgts), 4) * 100
-    print('FragQ8: {}'.format(fragq8))
-    print('FragQ3: {}'.format(fragq3))
-    #print('Q8: {}'.format(q8))
-    #print('Q3: {}'.format(q3))
+    q8 = np.round(metrics.q8_infer_accuracy(preds=ids, targets=tgts), 4) * 100
+    q3 = np.round(metrics.q3_infer_accuracy(preds=ids, targets=tgts), 4) * 100
+    #protq8 = np.round(metrics.q8_infer_accuracy(preds=new_ids, targets=new_tgts), 4) * 100
+    #protq3 = np.round(metrics.q3_infer_accuracy(preds=new_ids, targets=new_tgts), 4) * 100
+    print('Q8: {}'.format(q8))
+    print('Q3: {}'.format(q3))
+    #print('Q8: {}'.format(protq8))
+    #print('Q3: {}'.format(protq3))
 
     summary_writer = tf.summary.FileWriter(os.path.join(hparams.model_dir, 'test2'), test2_model.graph)
-    summary_writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='fragq8', simple_value=fragq8)]), global_step)
-    summary_writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='fragq3', simple_value=fragq3)]), global_step)
-    #summary_writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='q8', simple_value=q8)]), global_step)
-    #summary_writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='q3', simple_value=q3)]), global_step)
+    summary_writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='q8', simple_value=q8)]), global_step)
+    summary_writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='q3', simple_value=q3)]), global_step)
+    #summary_writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='protq8', simple_value=protq8)]), global_step)
+    #summary_writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='protq3', simple_value=protq3)]), global_step)
     summary_writer.close()
 
 
