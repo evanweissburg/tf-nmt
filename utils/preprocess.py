@@ -168,7 +168,7 @@ def split_dataset(data_dir, test_split_rate, validate_split_rate):
                     return do_split(csv.reader(file), csv.writer(train), csv.writer(test), csv.writer(validate))
 
 
-def fragment_datasets(data_dir, fragment_radius, fragment_jump):
+def fragment_datasets(data_dir, fragment_radius):
     def fragment_file(dataset):
         with open(data_dir+dataset+'/primary_'+dataset+'.csv', 'r+') as primary:
             with open(data_dir+dataset+'/secondary_'+dataset+'.csv', 'r+') as secondary:
@@ -188,7 +188,7 @@ def fragment_datasets(data_dir, fragment_radius, fragment_jump):
                                     for prim in primary_r:
                                         sec = next(secondary_r)
                                         wei = next(weights_r)
-                                        num_frags = len(prim)//fragment_jump
+                                        num_frags = len(prim)
                                         for j in range(num_frags):
                                             start = max(0, j-fragment_radius)
                                             end = min(j+fragment_radius+1, len(prim))

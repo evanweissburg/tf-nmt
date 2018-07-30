@@ -18,7 +18,6 @@ def create_or_load_model(hparams, model, sess):
     global_step = model.global_step.eval(session=sess)
     return model, global_step
 
-#### TRAIN MODEL ####
 
 class TrainModel(collections.namedtuple("TrainModel", ("graph", "model", "iterator"))):
     pass
@@ -42,7 +41,7 @@ def create_train_model(hparams):
 
         iterator = data_pipeline.get_iterator(hparams,
                                               src_data, tgt_data, weight_data,
-                                              src_vocab_table, tgt_vocab_table)
+                                              src_vocab_table, tgt_vocab_table, stitching=False)
 
         model = models.NMTModel(
             hparams,
@@ -56,8 +55,6 @@ def create_train_model(hparams):
         model=model,
         iterator=iterator)
 
-
-#### EVAL MODEL --> TESTING MODEL ####
 
 class TestModel(collections.namedtuple("TestModel", ("graph", "model", "iterator"))):
     pass
@@ -81,7 +78,7 @@ def create_test_model(hparams):
 
         iterator = data_pipeline.get_iterator(hparams,
                                               src_data, tgt_data, weight_data,
-                                              src_vocab_table, tgt_vocab_table)
+                                              src_vocab_table, tgt_vocab_table, stitching=False)
 
         model = models.NMTModel(
             hparams,
@@ -96,8 +93,6 @@ def create_test_model(hparams):
         iterator=iterator)
 
 
-#### EVAL2 MODEL --> TESTING 2 MODEL ####
-
 class Test2Model(collections.namedtuple("Test2Model", ("graph", "model", "iterator"))):
     pass
 
@@ -107,9 +102,9 @@ def create_test2_model(hparams):
 
     src_vocab_loc = hparams.data_dir + 'primary_vocab.txt'
     tgt_vocab_loc = hparams.data_dir + 'secondary_vocab.txt'
-    src_loc = hparams.data_dir + 'test/primary_test_frag.csv'
-    tgt_loc = hparams.data_dir + 'test/secondary_test_frag.csv'
-    weights_loc = hparams.data_dir + 'test/weights_test_frag.csv'
+    src_loc = hparams.data_dir + 'test/primary_test.csv'
+    tgt_loc = hparams.data_dir + 'test/secondary_test.csv'
+    weights_loc = hparams.data_dir + 'test/weights_test.csv'
 
     with graph.as_default():
         src_vocab_table, tgt_vocab_table = data_pipeline.make_vocab_tables(src_vocab_loc, tgt_vocab_loc)
@@ -120,7 +115,7 @@ def create_test2_model(hparams):
 
         iterator = data_pipeline.get_iterator(hparams,
                                               src_data, tgt_data, weight_data,
-                                              src_vocab_table, tgt_vocab_table, infer=True)
+                                              src_vocab_table, tgt_vocab_table, stitching=True)
 
         model = models.NMTModel(
             hparams,
@@ -135,9 +130,6 @@ def create_test2_model(hparams):
         iterator=iterator)
 
 
-
-#### INFER MODEL --> VALIDATION MODEL ####
-
 class ValidateModel(collections.namedtuple("ValidateModel", ("graph", "model", "iterator"))):
     pass
 
@@ -147,9 +139,9 @@ def create_validate_model(hparams):
 
     src_vocab_loc = hparams.data_dir + 'primary_vocab.txt'
     tgt_vocab_loc = hparams.data_dir + 'secondary_vocab.txt'
-    src_loc = hparams.data_dir + 'validate/primary_validate_frag.csv'
-    tgt_loc = hparams.data_dir + 'validate/secondary_validate_frag.csv'
-    weights_loc = hparams.data_dir + 'validate/weights_validate_frag.csv'
+    src_loc = hparams.data_dir + 'validate/primary_validate.csv'
+    tgt_loc = hparams.data_dir + 'validate/secondary_validate.csv'
+    weights_loc = hparams.data_dir + 'validate/weights_validate.csv'
 
     with graph.as_default():
         src_vocab_table, tgt_vocab_table = data_pipeline.make_vocab_tables(src_vocab_loc, tgt_vocab_loc)
@@ -160,7 +152,7 @@ def create_validate_model(hparams):
 
         iterator = data_pipeline.get_iterator(hparams,
                                               src_data, tgt_data, weight_data,
-                                              src_vocab_table, tgt_vocab_table, infer=True)
+                                              src_vocab_table, tgt_vocab_table, stitching=True)
 
         model = models.NMTModel(
             hparams,

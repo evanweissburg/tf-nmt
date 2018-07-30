@@ -84,7 +84,7 @@ def test2_step_log(test_frag_num):
     print(tgts)
     print(ids)
 
-    new_src, new_tgts, new_ids, test_frag_num = metrics.do_stitching(src, tgts, ids, hparams.fragment_radius, test_frags, test_frag_num)
+    new_src, new_tgts, new_ids, test_frag_num = metrics.stitch(src, tgts, ids, hparams.fragment_radius, test_frags, test_frag_num)
 
     print(new_src)
     print(new_tgts)

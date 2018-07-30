@@ -70,15 +70,16 @@ def stitch(radius, frags):
     candidates = list()
     for _ in frags:
         candidates.append(list())
+
     for i, frag in enumerate(frags):
         if i < radius:
-            for j in range(i + radius):
+            for j in range(i + radius + 1):
                 candidates[j].append(frag[j])
         elif i >= len(frags) - radius:
             for j in range(radius + len(frags) - i):
                 candidates[i + j - radius].append(frag[j])
         else:
-            for j in range(radius * 2):
+            for j in range(radius * 2 + 1):
                 candidates[i + j - radius].append(frag[j])
 
     stitched = list()
@@ -86,26 +87,3 @@ def stitch(radius, frags):
         candidate = [1 if n == -1 else n for n in candidate]
         stitched.append(np.argmax(np.bincount(candidate)))
     return stitched
-
-
-def do_stitching(src, tgts, ids, radius, test_frags, test_frag_num):
-    new_src = list()
-    new_tgts = list()
-    new_ids = list()
-
-    i = 0
-    while i < len(ids):
-        j = 0
-        k = test_frag_num + i
-        while k > 0:
-            k -= test_frags[j]
-            j += 1
-        if k == 0 and len(ids) - i >= test_frags[j]: # Start of protein and all needed frags are present
-            new_src.append(stitch(radius, src[i:i+test_frags[j]]))
-            new_tgts.append(stitch(radius, tgts[i:i+test_frags[j]]))
-            new_ids.append(stitch(radius, ids[i:i+test_frags[j]]))
-            i += test_frags[j]
-        else:
-            i += 1
-    test_frag_num += i
-    return new_src, new_tgts, new_ids, test_frag_num

@@ -20,7 +20,7 @@ def get_hparams():
                                           num_train_steps=400000,
                                           l_rate=0.0001,
                                           num_units=150,
-                                          batch_size=100,
+                                          batch_size=500,
                                           max_gradient_norm=5.0,
                                           attention=True,
                                           beam_search=True,
@@ -49,7 +49,6 @@ def get_hparams():
                                           min_weight=0.1,
 
                                           fragment_radius=6,
-                                          fragment_jump=1
                                           )
 
     return hparams
