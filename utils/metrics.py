@@ -66,7 +66,7 @@ def find_uniques(strings, max_len, sampling_len):
     return uniques
 
 
-def stitch(radius, frags):
+def stitch(radius, frags, weight=False):
     candidates = list()
     for _ in frags:
         candidates.append(list())
@@ -74,13 +74,16 @@ def stitch(radius, frags):
     for i, frag in enumerate(frags):
         if i < radius:
             for j in range(i + radius + 1):
-                candidates[j].append(frag[j])
+                for k in range(radius-abs(j-i) if weight else 1):
+                    candidates[j].append(frag[j])
         elif i >= len(frags) - radius:
             for j in range(radius + len(frags) - i):
-                candidates[i + j - radius].append(frag[j])
+                for k in range(radius-abs(j-radius) if weight else 1):
+                    candidates[i + j - radius].append(frag[j])
         else:
             for j in range(radius * 2 + 1):
-                candidates[i + j - radius].append(frag[j])
+                for k in range(radius-abs(j-radius) if weight else 1):
+                    candidates[i + j - radius].append(frag[j])
 
     stitched = list()
     for candidate in candidates:

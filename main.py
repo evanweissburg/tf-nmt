@@ -75,7 +75,12 @@ def test2_step_log():
         ids = ids.transpose([2, 0, 1])   # Change from [batch_size, time_steps, beam_width] to [beam_width, batch_size, time_steps]
         ids = ids[0]  # Only use top 1 prediction from top K
 
-    new_src, new_tgts, new_ids = src, tgts, ids #metrics.stitch(src, tgts, ids, hparams.fragment_radius)
+    new_src = list()
+    new_src.append(metrics.stitch(hparams.fragment_radius, src))
+    new_tgts = list()
+    new_tgts.append(metrics.stitch(hparams.fragment_radius, tgts))
+    new_ids = list()
+    new_ids.append(metrics.stitch(hparams.fragment_radius, ids))
 
     print('TEST2 STEP >>> @ Train Step {}'.format(global_step))
     io.print_example(new_ids, new_src, new_tgts, hparams.test2_max_printouts)
