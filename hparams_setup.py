@@ -13,14 +13,14 @@ def get_hparams():
 
                                           train_log_freq=10,
                                           test_log_freq=50,
-                                          test2_log_freq=1,
+                                          test2_log_freq=100,
                                           test_max_printouts=5,
                                           test2_max_printouts=5,
 
                                           num_train_steps=80000,
                                           l_rate=0.0001,
                                           num_units=150,
-                                          batch_size=500,
+                                          batch_size=100,
                                           max_gradient_norm=5.0,
                                           attention=True,
                                           beam_search=True,

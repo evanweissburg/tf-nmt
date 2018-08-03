@@ -72,7 +72,10 @@ def stitch(radius, frags, weight=False):
         candidates.append(list())
 
     for i, frag in enumerate(frags):
-        if i < radius:
+        if radius > i >= len(frags) - radius:
+            for j in range(len(frags)):
+                candidates[j].append(frag[j])
+        elif i < radius:
             for j in range(i + radius + 1):
                 for k in range(radius-abs(j-i) if weight else 1):
                     candidates[j].append(frag[j])
