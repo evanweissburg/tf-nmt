@@ -93,3 +93,22 @@ def stitch(radius, frags, weight=False):
         candidate = [1 if n == -1 else n for n in candidate]
         stitched.append(np.argmax(np.bincount(candidate)))
     return stitched
+
+
+def init_confusion():
+    ret = list()
+    for i in range(10):
+        ret.append(list())
+        for j in range(10):
+            ret[i][j] = 0
+    return ret
+
+
+def update_confusion(matrix, tgts, ids):
+    for i in range(len(tgts)):
+        for j in range(len(tgts[i])):
+            matrix[tgts[i][j]][ids[i][j]] += 1
+
+
+def finish_confusion(matrix):
+    matrix.map(lambda tgt: tgt.map(lambda x: x/sum(tgt)))

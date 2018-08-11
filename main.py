@@ -170,3 +170,4 @@ def validate():
     new_src, new_tgts, new_ids = metrics.stitch(src, tgts, ids, hparams.fragment_radius)
 
     # do something or other
+
